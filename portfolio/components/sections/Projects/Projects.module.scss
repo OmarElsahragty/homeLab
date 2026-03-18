@@ -1,0 +1,271 @@
+.projects {
+    position: relative;
+    padding: $space-24 0 $space-32;
+
+    @include md {
+        padding: $space-32 0;
+    }
+}
+
+.bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--bg-primary), var(--section-mid), var(--bg-primary));
+}
+
+.inner {
+    position: relative;
+    z-index: 10;
+    @include section-inner;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-6;
+}
+
+/* Card inner layout */
+.cardInner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+
+    @include sm {
+        flex-direction: row;
+    }
+}
+
+/* Image carousel */
+.carousel {
+    width: 100%;
+
+    @include sm {
+        flex-shrink: 0;
+        width: 42%;
+    }
+}
+
+.carouselImage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: var(--bg-terminal);
+
+    @include sm {
+        height: 100%;
+        min-height: $size-13-75rem;
+        max-height: $size-20rem;
+        aspect-ratio: unset;
+    }
+}
+
+.imageWrapper {
+    position: absolute;
+    inset: 0;
+}
+
+.projectImage {
+    object-fit: cover;
+}
+
+.carouselBtn {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $size-7;
+    height: $size-7;
+    color: $projects-carousel-btn-text;
+    cursor: pointer;
+    background: $projects-carousel-btn-bg;
+    border: $border-width-thin solid $projects-carousel-btn-border;
+    border-radius: 50%;
+    filter: $projects-carousel-btn-shadow;
+    transform: translateY(-50%);
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: $projects-carousel-btn-bg-hover;
+    }
+}
+
+.carouselBtnLeft {
+    left: $size-4px;
+}
+
+.carouselBtnRight {
+    right: $size-4px;
+}
+
+.expandBtn {
+    position: absolute;
+    top: $space-2;
+    right: $space-2;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $size-7;
+    height: $size-7;
+    color: #{$color-white};
+    cursor: pointer;
+    background: color-alpha($rgb-black, $alpha-darker);
+    border-radius: $space-1-5;
+    filter: drop-shadow(0 $space-0-5 $space-1 color-alpha($rgb-black, $projects-expand-shadow-alpha));
+    transition:
+        background var(--transition-fast),
+        color var(--transition-fast);
+
+    &:hover {
+        background: color-alpha($rgb-black, $alpha-darker);
+    }
+}
+
+.carouselDots {
+    position: absolute;
+    bottom: $space-1-5;
+    left: 50%;
+    z-index: 2;
+    display: flex;
+    gap: $space-1;
+    transform: translateX(-50%);
+}
+
+.dot {
+    width: $space-1-5;
+    height: $space-1-5;
+    padding: 0;
+    cursor: pointer;
+    background: $projects-dot-inactive-bg;
+    border: none;
+    border-radius: 50%;
+    transition: background var(--transition-fast);
+}
+
+.dotActive {
+    background: var(--theme-color, var(--accent-blue));
+}
+
+.counter {
+    padding: $space-0-5 $space-2;
+    font-family: var(--font-mono);
+    font-size: $text-xs;
+    color: var(--text-primary);
+    background: color-alpha($rgb-white, $alpha-dark);
+    border-radius: $radius-full;
+}
+
+.cardBody {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    padding: $space-5;
+}
+
+.cardHeader {
+    display: flex;
+    gap: $space-3;
+    align-items: center;
+    margin-bottom: $space-4;
+}
+
+.cardDot {
+    width: $space-3;
+    height: $space-3;
+    background-color: var(--theme-color);
+    border-radius: 50%;
+    box-shadow: 0 0 $blur-sm var(--theme-glow);
+}
+
+.cardTitle {
+    font-size: $text-lg;
+    font-weight: 700;
+    color: var(--theme-color);
+}
+
+.cardDesc {
+    flex-grow: 1;
+    margin-bottom: $space-4;
+    font-size: $text-sm;
+    line-height: 1.75;
+    color: var(--text-dim);
+}
+
+.techBadges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-1-5;
+    margin-bottom: $space-4;
+}
+
+.techBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $space-8;
+    height: $space-8;
+    font-size: $text-lg;
+    cursor: default;
+    background: var(--pill-bg);
+    border: $border-width-thin solid var(--pill-border);
+    border-radius: $radius-sm;
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: var(--pill-border);
+    }
+}
+
+.cardActions {
+    display: flex;
+    gap: $space-3;
+    margin-top: auto;
+}
+
+.cardLink {
+    display: flex;
+    gap: $space-1-5;
+    align-items: center;
+    padding: $space-1 0;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: var(--text-dim);
+    text-decoration: none;
+    cursor: pointer;
+    background: none;
+    border: none;
+    transition: color var(--transition-fast);
+
+    &:hover {
+        color: var(--accent-yellow);
+    }
+}
+
+.cardLinkPurple {
+    /* stylelint-disable-next-line value-keyword-case */
+    composes: cardLink;
+
+    &:hover {
+        color: var(--accent-purple);
+    }
+}
+
+/* Easter egg */
+.easter {
+    margin-top: $space-12;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: var(--text-muted);
+    text-align: center;
+    cursor: default;
+    transition: color var(--transition-fast);
+
+    &:hover {
+        color: var(--accent-orange);
+    }
+}

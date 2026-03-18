@@ -1,0 +1,227 @@
+// SCSS design tokens (compile-time) — shared with all SCSS modules via
+// next.config.ts sassOptions.additionalData auto-injection.
+@use "variables" as *;
+@use "mixins" as *;
+@use "base";
+@use "utility";
+
+/* ============================================================================
+     Global Styles — Omar Elsahragty Portfolio
+     CSS Custom Properties + Utility Classes + Animations
+     (Base reset & element defaults live in _base.scss)
+     ============================================================================ */
+
+/* ---------- CSS Custom Properties ---------- */
+:root {
+    /* Traffic light dots */
+    --dot-red: #{$color-dot-red};
+    --dot-yellow: #{$color-dot-yellow};
+    --dot-green: #{$color-dot-green};
+
+    /* Spacing */
+    --max-width: 1200px;
+    --nav-height: 4.5rem;
+    --section-padding: clamp(4rem, 8vw, 8rem);
+
+    /* Radius */
+    --radius-sm: 0.375rem;
+    --radius: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+
+    /* Typography */
+    --font-sans: var(--font-sans), -apple-system, blinkmacsystemfont, system-ui, sans-serif;
+    --font-mono: var(--font-mono), "Fira Code", monospace;
+    --font-arabic: var(--font-arabic), "Noto Naskh Arabic", "Amiri", serif;
+
+    /* Z-index layers */
+    --z-background: 0;
+    --z-content: 1;
+    --z-card: 10;
+    --z-navbar: 50;
+    --z-cursor-ring: 9998;
+    --z-cursor: 9999;
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+    --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Dark Theme (default) ---------- */
+html[data-theme="dark"] {
+    --bg-primary: #{$dark-bg-primary};
+    --bg-secondary: #{$dark-bg-secondary};
+    --bg-terminal: #{$dark-bg-terminal};
+    --bg-card: #{$dark-bg-card};
+    --text-primary: #{$dark-text-primary};
+    --text-dim: #{$dark-text-dim};
+    --text-muted: #{$dark-text-muted};
+    --accent-yellow: #{$dark-accent-yellow};
+    --accent-blue: #{$dark-accent-blue};
+    --accent-purple: #{$dark-accent-purple};
+    --accent-green: #{$dark-accent-green};
+    --accent-orange: #{$dark-accent-orange};
+    --accent-cyan: #{$dark-accent-cyan};
+    --border-subtle: #{$dark-border-subtle};
+    --border-light: #{$dark-border-light};
+    --border-medium: #{$dark-border-medium};
+
+    /* Theme-aware surface tokens */
+    --pill-bg: #{$dark-pill-bg};
+    --pill-border: #{$dark-pill-border};
+    --pill-border-hover: #{$dark-pill-border-hover};
+    --terminal-border: #{$dark-terminal-border};
+    --divider: #{$dark-divider};
+    --input-border: #{$dark-input-border};
+    --icon-bg: #{$dark-icon-bg};
+    --card-hover-border: #{$dark-card-hover-border};
+
+    /* Component-specific tokens */
+    --body-bg: #{$dark-body-bg};
+    --section-mid: #{$dark-section-mid};
+    --navbar-scrolled-bg: #{$dark-navbar-scrolled-bg};
+    --mobile-menu-bg: #{$dark-mobile-menu-bg};
+    --footer-bg: #{$dark-footer-bg};
+    --card-bg: #{$dark-card-bg};
+
+    /* Form surface tokens */
+    --form-bg: #{$dark-form-bg};
+    --form-header-bg: #{$dark-form-header-bg};
+    --form-shadow: 0 1.5rem 3rem -0.75rem #{$dark-form-shadow-1},
+        0 0 1.5rem #{$dark-form-shadow-2};
+
+    /* Glow surface RGB bases */
+    --glow-blue-rgb: #{$dark-glow-blue-rgb};
+    --glow-purple-rgb: #{$dark-glow-purple-rgb};
+    --glow-green-rgb: #{$dark-glow-green-rgb};
+    --glow-orange-rgb: #{$dark-glow-orange-rgb};
+    --glow-yellow-rgb: #{$dark-glow-yellow-rgb};
+    --glow-hover-shadow-alpha: #{$dark-glow-hover-shadow-alpha};
+
+    /* Hero section surfaces */
+    --hero-overlay-bg: #{$dark-hero-overlay-bg};
+    --hero-grid-line-rgb: #{$dark-hero-grid-line-rgb};
+    --hero-grid-line-alpha: #{$dark-hero-grid-line-alpha};
+    --hero-grid-opacity: #{$dark-hero-grid-opacity};
+    --hero-glow-rgb: #{$dark-hero-glow-rgb};
+
+    /* Submit button */
+    --btn-submit-color: #{$dark-btn-submit-color};
+    --btn-submit-bg: #{$dark-btn-submit-bg};
+    --btn-submit-border: #{$dark-btn-submit-border};
+    --btn-submit-hover-color: #{$dark-btn-submit-hover-color};
+    --btn-submit-hover-bg: #{$dark-btn-submit-hover-bg};
+    --btn-submit-hover-shadow: #{$dark-btn-submit-hover-shadow};
+
+    /* Social & navigation */
+    --social-icon-bg: #{$dark-social-icon-bg};
+    --nav-hover-color: #{$dark-nav-hover-color};
+}
+
+/* ---------- Light Theme ---------- */
+html[data-theme="light"] {
+    --bg-primary: #{$light-bg-primary};
+    --bg-secondary: #{$light-bg-secondary};
+    --bg-terminal: #{$light-bg-terminal};
+    --bg-card: #{$light-bg-card};
+    --text-primary: #{$light-text-primary};
+    --text-dim: #{$light-text-dim};
+    --text-muted: #{$light-text-muted};
+    --accent-yellow: #{$light-accent-yellow};
+    --accent-blue: #{$light-accent-blue};
+    --accent-purple: #{$light-accent-purple};
+    --accent-green: #{$light-accent-green};
+    --accent-orange: #{$light-accent-orange};
+    --accent-cyan: #{$light-accent-cyan};
+    --border-subtle: #{$light-border-subtle};
+    --border-light: #{$light-border-light};
+    --border-medium: #{$light-border-medium};
+
+    /* Theme-aware surface tokens */
+    --pill-bg: #{$light-pill-bg};
+    --pill-border: #{$light-pill-border};
+    --pill-border-hover: #{$light-pill-border-hover};
+    --terminal-border: #{$light-terminal-border};
+    --divider: #{$light-divider};
+    --input-border: #{$light-input-border};
+    --icon-bg: #{$light-icon-bg};
+    --card-hover-border: #{$light-card-hover-border};
+
+    /* Component-specific tokens */
+    --body-bg: #{$light-body-bg-gradient};
+    --section-mid: #{$light-section-mid};
+    --navbar-scrolled-bg: #{$light-navbar-scrolled-bg};
+    --mobile-menu-bg: #{$light-mobile-menu-bg};
+    --footer-bg: #{$light-footer-bg};
+    --card-bg: #{$light-card-bg};
+
+    /* Form surface tokens */
+    --form-bg: #{$light-form-bg};
+    --form-header-bg: #{$light-form-header-bg};
+    --form-shadow: 0 1.5rem 3rem -0.75rem #{$light-form-shadow-1},
+        0 0 1.5rem #{$light-form-shadow-2};
+
+    /* Glow surface RGB bases */
+    --glow-blue-rgb: #{$light-glow-blue-rgb};
+    --glow-purple-rgb: #{$light-glow-purple-rgb};
+    --glow-green-rgb: #{$light-glow-green-rgb};
+    --glow-orange-rgb: #{$light-glow-orange-rgb};
+    --glow-yellow-rgb: #{$light-glow-yellow-rgb};
+    --glow-hover-shadow-alpha: #{$light-glow-hover-shadow-alpha};
+
+    /* Hero section surfaces */
+    --hero-overlay-bg: #{$light-hero-overlay-bg};
+    --hero-grid-line-rgb: #{$light-hero-grid-line-rgb};
+    --hero-grid-line-alpha: #{$light-hero-grid-line-alpha};
+    --hero-grid-opacity: #{$light-hero-grid-opacity};
+    --hero-glow-rgb: #{$light-hero-glow-rgb};
+
+    /* Submit button */
+    --btn-submit-color: #{$light-btn-submit-color};
+    --btn-submit-bg: #{$light-btn-submit-bg};
+    --btn-submit-border: #{$light-btn-submit-border};
+    --btn-submit-hover-color: #{$light-btn-submit-hover-color};
+    --btn-submit-hover-bg: #{$light-btn-submit-hover-bg};
+    --btn-submit-hover-shadow: #{$light-btn-submit-hover-shadow};
+
+    /* Social & navigation */
+    --social-icon-bg: #{$light-social-icon-bg};
+    --nav-hover-color: #{$light-nav-hover-color};
+}
+
+/* ---------- Terminal Surface Tokens ---------- */
+
+/* Applied via data-terminal-surface so component .scss files never declare their own vars */
+html[data-theme="dark"] [data-terminal-surface] {
+    --text-primary: #{$term-dark-text-primary};
+    --text-dim: #{$term-dark-text-dim};
+    --accent-yellow: #{$dark-accent-yellow};
+    --accent-blue: #{$dark-accent-blue};
+    --accent-green: #{$dark-accent-green};
+    --accent-orange: #{$dark-accent-orange};
+    --accent-purple: #{$dark-accent-purple};
+    --bg-secondary: #{$term-dark-bg-secondary};
+}
+
+html[data-theme="light"] [data-terminal-surface] {
+    --text-primary: #{$light-text-primary};
+    --text-dim: #{$light-text-dim};
+    --accent-yellow: #{$light-accent-yellow};
+    --accent-blue: #{$light-accent-blue};
+    --accent-green: #{$light-accent-green};
+    --accent-orange: #{$light-accent-orange};
+    --accent-purple: #{$light-accent-purple};
+    --bg-secondary: #{$term-light-bg-secondary};
+}
+
+/* ---------- RTL / Arabic Support ---------- */
+html[dir="rtl"] {
+    font-family: var(--font-arabic), var(--font-sans);
+
+    /* Flip text alignment */
+    body {
+        text-align: right;
+    }
+}

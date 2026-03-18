@@ -1,0 +1,8 @@
+.typing {
+    font-family: var(--font-mono);
+}
+
+.cursor {
+    color: var(--accent-yellow);
+    animation: pulse 1s step-start infinite;
+}

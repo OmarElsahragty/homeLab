@@ -1,0 +1,64 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: $space-10 $space-5;
+    font-family: var(--font-sans), sans-serif;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.title {
+    margin-bottom: $space-4;
+    font-size: $text-2xl;
+    color: var(--text-primary);
+}
+
+.description {
+    max-width: $size-31-25rem;
+    margin-bottom: $space-8;
+    line-height: 1.6;
+    color: var(--text-dim);
+}
+
+.actions {
+    display: flex;
+    gap: $space-4;
+}
+
+.btnPrimary {
+    padding: $space-3 $space-6;
+    font-size: $text-base;
+    font-weight: 500;
+    color: #{$color-white};
+    cursor: pointer;
+    background: var(--accent-blue);
+    border: none;
+    border-radius: var(--radius-md);
+    transition: opacity var(--transition-fast);
+
+    &:hover {
+        opacity: 0.88;
+    }
+}
+
+.btnSecondary {
+    padding: $space-3 $space-6;
+    font-size: $text-base;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    background: transparent;
+    border: $border-width-thin solid var(--border-medium);
+    border-radius: var(--radius-md);
+    transition:
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+
+    &:hover {
+        color: var(--text-primary);
+        border-color: var(--border-medium);
+    }
+}

@@ -1,0 +1,102 @@
+// =============================================================================
+// Portfolio — SCSS Mixins & Helpers
+// =============================================================================
+@use "sass:string";
+@use "variables" as *;
+
+// -----------------------------------------------------------------------------
+// Color helpers
+// -----------------------------------------------------------------------------
+/// Outputs a CSS `rgb(R G B / alpha)` string from a quoted RGB triplet + alpha.
+/// Usage: color-alpha($rgb-black, $alpha-darker)  →  rgb(0 0 0 / 0.55)
+@function color-alpha($triplet, $alpha) {
+    @return string.unquote("rgb(#{$triplet} / #{$alpha})");
+}
+
+// -----------------------------------------------------------------------------
+// Breakpoint mixins (mobile-first, min-width)
+// -----------------------------------------------------------------------------
+@mixin sm {
+    @media (width >=#{$bp-sm}) {
+        @content;
+    }
+}
+
+@mixin md {
+    @media (width >=#{$bp-md}) {
+        @content;
+    }
+}
+
+@mixin lg {
+    @media (width >=#{$bp-lg}) {
+        @content;
+    }
+}
+
+@mixin xl {
+    @media (width >=#{$bp-xl}) {
+        @content;
+    }
+}
+
+/// Mobile-only (below $bp-sm)
+@mixin mobile {
+    @media (width < #{$bp-sm}) {
+        @content;
+    }
+}
+
+/// Extra-small only (below $bp-xs)
+@mixin xs-down {
+    @media (width < #{$bp-xs}) {
+        @content;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Flex layout helpers
+// -----------------------------------------------------------------------------
+@mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@mixin flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+@mixin flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+// -----------------------------------------------------------------------------
+// Section layout
+// Sets inner max-width, horizontal gutters, and auto side margins.
+// Usage: @include section-inner;  or  @include section-inner($max-width-narrow);
+// -----------------------------------------------------------------------------
+@mixin section-inner($max: $max-width) {
+    max-width: $max;
+    padding-inline: $inner-padding-x;
+    margin-inline: auto;
+}
+
+// -----------------------------------------------------------------------------
+// Text utilities
+// -----------------------------------------------------------------------------
+@mixin truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@mixin line-clamp($lines: 2) {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+}

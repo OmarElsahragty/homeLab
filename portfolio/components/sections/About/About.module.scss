@@ -1,0 +1,152 @@
+.about {
+    position: relative;
+    padding: $space-24 0 $space-32;
+
+    @include md {
+        padding: $space-32 0;
+    }
+}
+
+.bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-primary), var(--bg-primary));
+}
+
+.inner {
+    position: relative;
+    z-index: 10;
+    @include section-inner;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-12;
+    align-items: start;
+
+    @include lg {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Terminal bio styles */
+.terminalContent {
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+}
+
+.promptLine {
+    .purple {
+        color: var(--accent-purple);
+    }
+
+    .dim {
+        color: var(--text-dim);
+    }
+
+    .blue {
+        color: var(--accent-yellow);
+    }
+
+    .text {
+        color: var(--text-primary);
+    }
+}
+
+.bioText {
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+
+.npmJoke {
+    padding-top: $space-4;
+    margin-top: $space-6;
+    border-top: $border-width-thin solid var(--divider);
+}
+
+.npmResult {
+    margin-top: $space-2;
+    font-size: $text-xs;
+    color: var(--accent-green);
+}
+
+.npmNote {
+    margin-top: $space-1;
+    font-size: $text-xs;
+    color: var(--text-dim);
+}
+
+/* Skills grid */
+.skillsGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-4;
+
+    @include sm {
+        grid-template-columns: 1fr 1fr;
+
+        /* If the last item is in an odd position, span it across both columns */
+        >*:last-child:nth-child(odd) {
+            grid-column: 1 / -1;
+        }
+    }
+}
+
+.categoryCard {
+    padding: $space-5;
+}
+
+.categoryHeader {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    margin-bottom: $space-3;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    font-weight: 700;
+    color: var(--theme-color);
+}
+
+.categoryDot {
+    display: inline-block;
+    width: $space-2;
+    height: $space-2;
+    background-color: var(--theme-color);
+    border-radius: 50%;
+}
+
+.skillsList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-2;
+}
+
+.skillIcon {
+    color: var(--theme-color);
+}
+
+.skillPill {
+    display: flex;
+    gap: $space-1-5;
+    align-items: center;
+    padding: $space-1 $space-3;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: var(--text-primary);
+    cursor: default;
+    background: var(--pill-bg);
+    border: $border-width-thin solid var(--pill-border);
+    border-radius: var(--radius-md);
+    transition:
+        border-color var(--transition-fast),
+        background var(--transition-fast),
+        transform var(--transition-fast);
+
+    &:hover {
+        background: color-alpha($rgb-white, $alpha-lg);
+        border-color: var(--pill-border-hover);
+        transform: scale(1.08) translateY(-2px);
+    }
+}

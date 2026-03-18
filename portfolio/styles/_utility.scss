@@ -1,0 +1,316 @@
+// =============================================================================
+// Portfolio — Utility Classes
+// =============================================================================
+// Global utility/helper classes used via className in components.
+// Kept separate from globals.scss for clarity.
+// =============================================================================
+
+@use "variables" as *;
+
+/* ─── GPU acceleration helpers for Framer Motion ─── */
+[data-framer-motion],
+.motion-safe\:gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* ---------- Animation Keyframes ---------- */
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes ping {
+    75%,
+    100% {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+@keyframes bounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes quack {
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    15% {
+        transform: rotate(-15deg) scale(1.2);
+    }
+
+    30% {
+        transform: rotate(12deg) scale(1.15);
+    }
+
+    45% {
+        transform: rotate(-10deg) scale(1.1);
+    }
+
+    60% {
+        transform: rotate(8deg) scale(1.05);
+    }
+
+    80% {
+        transform: rotate(-4deg) scale(1);
+    }
+}
+
+/* ---------- Auto-generated Theme Classes ---------- */
+.theme-ffd700 {
+    --theme-color: #{$theme-color-ffd700};
+    --theme-glow: #{$theme-color-ffd700}60;
+    --theme-bg-opacity: #{$theme-color-ffd700}30;
+}
+
+.theme-61dafb {
+    --theme-color: #{$theme-color-61dafb};
+    --theme-glow: #{$theme-color-61dafb}60;
+    --theme-bg-opacity: #{$theme-color-61dafb}30;
+}
+
+.theme-e2e8f0 {
+    --theme-color: #{$theme-color-e2e8f0};
+    --theme-glow: #{$theme-color-e2e8f0}60;
+    --theme-bg-opacity: #{$theme-color-e2e8f0}30;
+}
+
+.theme-dd0031 {
+    --theme-color: #{$theme-color-dd0031};
+    --theme-glow: #{$theme-color-dd0031}60;
+    --theme-bg-opacity: #{$theme-color-dd0031}30;
+}
+
+.theme-764abc {
+    --theme-color: #{$theme-color-764abc};
+    --theme-glow: #{$theme-color-764abc}60;
+    --theme-bg-opacity: #{$theme-color-764abc}30;
+}
+
+.theme-3178c6 {
+    --theme-color: #{$theme-color-3178c6};
+    --theme-glow: #{$theme-color-3178c6}60;
+    --theme-bg-opacity: #{$theme-color-3178c6}30;
+}
+
+.theme-f7df1e {
+    --theme-color: #{$theme-color-f7df1e};
+    --theme-glow: #{$theme-color-f7df1e}60;
+    --theme-bg-opacity: #{$theme-color-f7df1e}30;
+}
+
+.theme-4ade80 {
+    --theme-color: #{$theme-color-4ade80};
+    --theme-glow: #{$theme-color-4ade80}60;
+    --theme-bg-opacity: #{$theme-color-4ade80}30;
+}
+
+.theme-339933 {
+    --theme-color: #{$theme-color-339933};
+    --theme-glow: #{$theme-color-339933}60;
+    --theme-bg-opacity: #{$theme-color-339933}30;
+}
+
+.theme-e0234e {
+    --theme-color: #{$theme-color-e0234e};
+    --theme-glow: #{$theme-color-e0234e}60;
+    --theme-bg-opacity: #{$theme-color-e0234e}30;
+}
+
+.theme-ff6b35 {
+    --theme-color: #{$theme-color-ff6b35};
+    --theme-glow: #{$theme-color-ff6b35}60;
+    --theme-bg-opacity: #{$theme-color-ff6b35}30;
+}
+
+.theme-e10098 {
+    --theme-color: #{$theme-color-e10098};
+    --theme-glow: #{$theme-color-e10098}60;
+    --theme-bg-opacity: #{$theme-color-e10098}30;
+}
+
+.theme-010101 {
+    --theme-color: #{$theme-color-010101};
+    --theme-glow: #{$theme-color-010101}60;
+    --theme-bg-opacity: #{$theme-color-010101}30;
+}
+
+.theme-dc322f {
+    --theme-color: #{$theme-color-dc322f};
+    --theme-glow: #{$theme-color-dc322f}60;
+    --theme-bg-opacity: #{$theme-color-dc322f}30;
+}
+
+.theme-bc8cff {
+    --theme-color: #{$theme-color-bc8cff};
+    --theme-glow: #{$theme-color-bc8cff}60;
+    --theme-bg-opacity: #{$theme-color-bc8cff}30;
+}
+
+.theme-47a248 {
+    --theme-color: #{$theme-color-47a248};
+    --theme-glow: #{$theme-color-47a248}60;
+    --theme-bg-opacity: #{$theme-color-47a248}30;
+}
+
+.theme-4169e1 {
+    --theme-color: #{$theme-color-4169e1};
+    --theme-glow: #{$theme-color-4169e1}60;
+    --theme-bg-opacity: #{$theme-color-4169e1}30;
+}
+
+.theme-4479a1 {
+    --theme-color: #{$theme-color-4479a1};
+    --theme-glow: #{$theme-color-4479a1}60;
+    --theme-bg-opacity: #{$theme-color-4479a1}30;
+}
+
+.theme-1287b1 {
+    --theme-color: #{$theme-color-1287b1};
+    --theme-glow: #{$theme-color-1287b1}60;
+    --theme-bg-opacity: #{$theme-color-1287b1}30;
+}
+
+.theme-005571 {
+    --theme-color: #{$theme-color-005571};
+    --theme-glow: #{$theme-color-005571}60;
+    --theme-bg-opacity: #{$theme-color-005571}30;
+}
+
+.theme-dc382d {
+    --theme-color: #{$theme-color-dc382d};
+    --theme-glow: #{$theme-color-dc382d}60;
+    --theme-bg-opacity: #{$theme-color-dc382d}30;
+}
+
+.theme-2496ed {
+    --theme-color: #{$theme-color-2496ed};
+    --theme-glow: #{$theme-color-2496ed}60;
+    --theme-bg-opacity: #{$theme-color-2496ed}30;
+}
+
+.theme-326ce5 {
+    --theme-color: #{$theme-color-326ce5};
+    --theme-glow: #{$theme-color-326ce5}60;
+    --theme-bg-opacity: #{$theme-color-326ce5}30;
+}
+
+.theme-4285f4 {
+    --theme-color: #{$theme-color-4285f4};
+    --theme-glow: #{$theme-color-4285f4}60;
+    --theme-bg-opacity: #{$theme-color-4285f4}30;
+}
+
+.theme-ff9900 {
+    --theme-color: #{$theme-color-ff9900};
+    --theme-glow: #{$theme-color-ff9900}60;
+    --theme-bg-opacity: #{$theme-color-ff9900}30;
+}
+
+.theme-7b42bc {
+    --theme-color: #{$theme-color-7b42bc};
+    --theme-glow: #{$theme-color-7b42bc}60;
+    --theme-bg-opacity: #{$theme-color-7b42bc}30;
+}
+
+.theme-009639 {
+    --theme-color: #{$theme-color-009639};
+    --theme-glow: #{$theme-color-009639}60;
+    --theme-bg-opacity: #{$theme-color-009639}30;
+}
+
+.theme-ffca28 {
+    --theme-color: #{$theme-color-ffca28};
+    --theme-glow: #{$theme-color-ffca28}60;
+    --theme-bg-opacity: #{$theme-color-ffca28}30;
+}
+
+.theme-f05032 {
+    --theme-color: #{$theme-color-f05032};
+    --theme-glow: #{$theme-color-f05032}60;
+    --theme-bg-opacity: #{$theme-color-f05032}30;
+}
+
+.theme-fcc624 {
+    --theme-color: #{$theme-color-fcc624};
+    --theme-glow: #{$theme-color-fcc624}60;
+    --theme-bg-opacity: #{$theme-color-fcc624}30;
+}
+
+.theme-58a6ff {
+    --theme-color: #{$theme-color-58a6ff};
+    --theme-glow: #{$theme-color-58a6ff}60;
+    --theme-bg-opacity: #{$theme-color-58a6ff}30;
+}
+
+/* ── Light-mode --theme-color overrides ────────────────────────────────────
+   Only --theme-color is overridden; --theme-glow and --theme-bg-opacity
+   intentionally keep their vivid values for decorative glows and backgrounds.
+   ─────────────────────────────────────────────────────────────────────────── */
+html[data-theme="light"] {
+    .theme-ffd700 {
+        --theme-color: #{$theme-color-light-ffd700};
+    }
+
+    .theme-f7df1e {
+        --theme-color: #{$theme-color-light-f7df1e};
+    }
+
+    .theme-4ade80 {
+        --theme-color: #{$theme-color-light-4ade80};
+    }
+
+    .theme-bc8cff {
+        --theme-color: #{$theme-color-light-bc8cff};
+    }
+
+    .theme-58a6ff {
+        --theme-color: #{$theme-color-light-58a6ff};
+    }
+
+    .theme-ff6b35 {
+        --theme-color: #{$theme-color-light-ff6b35};
+    }
+
+    .theme-ff9900 {
+        --theme-color: #{$theme-color-light-ff9900};
+    }
+
+    .theme-ffca28 {
+        --theme-color: #{$theme-color-light-ffca28};
+    }
+
+    .theme-fcc624 {
+        --theme-color: #{$theme-color-light-fcc624};
+    }
+
+    .theme-e2e8f0 {
+        --theme-color: #{$theme-color-light-e2e8f0};
+    }
+}

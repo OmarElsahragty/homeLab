@@ -1,0 +1,86 @@
+.button {
+    position: relative;
+    display: inline-flex;
+    gap: $space-2;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: $font-weight-medium;
+    border: $border-width-thin solid;
+    border-radius: var(--radius);
+    backdrop-filter: blur($blur-xs);
+    transition: all var(--transition-normal);
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+
+    &:active {
+        transform: translateY(0) scale(0.98);
+    }
+
+    /* Sizes */
+    &.sm {
+        padding: $space-2 $space-4;
+        font-size: $text-sm;
+    }
+
+    &.md {
+        padding: $space-3 $space-6;
+        font-size: $text-base;
+    }
+
+    &.lg {
+        padding: $space-4 $space-8;
+        font-size: $text-lg;
+    }
+
+    /* Variants */
+    &.blue {
+        color: var(--accent-blue);
+        background: rgb(var(--glow-blue-rgb) / $glow-btn-bg-alpha);
+        border-color: rgb(var(--glow-blue-rgb) / $glow-btn-border-alpha);
+
+        &:hover {
+            background: rgb(var(--glow-blue-rgb) / $glow-btn-hover-blue-alpha);
+            box-shadow: 0 0 $glow-btn-hover-shadow-size
+                rgb(var(--glow-blue-rgb) / var(--glow-hover-shadow-alpha));
+        }
+    }
+
+    &.purple {
+        color: var(--accent-purple);
+        background: rgb(var(--glow-purple-rgb) / $glow-btn-bg-alpha);
+        border-color: rgb(var(--glow-purple-rgb) / $glow-btn-border-alpha);
+
+        &:hover {
+            background: rgb(var(--glow-purple-rgb) / $glow-btn-hover-blue-alpha);
+            box-shadow: 0 0 $glow-btn-hover-shadow-size
+                rgb(var(--glow-purple-rgb) / var(--glow-hover-shadow-alpha));
+        }
+    }
+
+    &.green {
+        color: var(--accent-green);
+        background: rgb(var(--glow-green-rgb) / $glow-btn-bg-alpha);
+        border-color: rgb(var(--glow-green-rgb) / $glow-btn-border-alpha);
+
+        &:hover {
+            background: rgb(var(--glow-green-rgb) / $glow-btn-hover-subtle-alpha);
+            box-shadow: 0 0 $glow-btn-hover-shadow-size
+                rgb(var(--glow-green-rgb) / var(--glow-hover-shadow-alpha));
+        }
+    }
+
+    &.orange {
+        color: var(--accent-orange);
+        background: rgb(var(--glow-orange-rgb) / $glow-btn-bg-alpha);
+        border-color: rgb(var(--glow-orange-rgb) / $glow-btn-border-alpha);
+
+        &:hover {
+            background: rgb(var(--glow-orange-rgb) / $glow-btn-hover-subtle-alpha);
+            box-shadow: 0 0 $glow-btn-hover-shadow-size
+                rgb(var(--glow-orange-rgb) / var(--glow-hover-shadow-alpha));
+        }
+    }
+}

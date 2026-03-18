@@ -1,0 +1,227 @@
+.experience {
+    position: relative;
+    padding: $space-24 0 $space-32;
+
+    @include md {
+        padding: $space-32 0;
+    }
+}
+
+.bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--bg-primary), var(--section-mid), var(--bg-primary));
+}
+
+.inner {
+    position: relative;
+    z-index: 10;
+    @include section-inner($max-width-narrow);
+}
+
+/* Terminal wrapper */
+.terminalWrap {
+    overflow: hidden;
+    background: var(--bg-terminal);
+    border: $border-width-thin solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: $shadow-experience-card;
+}
+
+.terminalHeader {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    padding: $form-field-padding-y $space-4;
+    background: var(--bg-secondary);
+    border-bottom: $border-width-thin solid var(--border-subtle);
+}
+
+.dot {
+    width: $space-3;
+    height: $space-3;
+    border-radius: 50%;
+
+    &.red {
+        background: var(--dot-red);
+    }
+
+    &.yellow {
+        background: var(--dot-yellow);
+    }
+
+    &.green {
+        background: var(--dot-green);
+    }
+}
+
+.terminalTitle {
+    margin-left: $space-2;
+    font-family: var(--font-mono);
+    font-size: $text-xs;
+    color: var(--text-dim);
+}
+
+/* Commits list */
+.commits {
+    padding: $space-4 $space-6;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+
+    @include md {
+        padding: $space-6;
+    }
+}
+
+.entry {
+    position: relative;
+    padding-bottom: $space-8;
+    padding-left: $space-8;
+
+    &:last-child {
+        padding-bottom: 0;
+    }
+}
+
+/* Vertical connecting line */
+.line {
+    position: absolute;
+    top: $space-6;
+    bottom: 0;
+    left: $experience-line-left;
+    width: $section-underline-height;
+    background: linear-gradient(to bottom, var(--theme-glow), transparent);
+}
+
+/* Commit dot */
+.commitDot {
+    position: absolute;
+    top: $space-1-5;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $space-6;
+    height: $space-6;
+    background-color: transparent;
+    border: $border-width-sm solid var(--theme-color);
+    border-radius: 50%;
+
+    .isCurrent & {
+        background-color: var(--theme-bg-opacity);
+    }
+}
+
+.commitDotPulse {
+    width: $space-2;
+    height: $space-2;
+    background-color: var(--theme-color);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+/* Commit button */
+.commitBtn {
+    width: 100%;
+    padding: 0;
+    font-family: var(--font-mono);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    background: none;
+    border: none;
+
+    &:disabled {
+        cursor: default;
+    }
+
+    &:hover:not(:disabled) .commitRole {
+        filter: brightness(1.25);
+    }
+}
+
+.commitMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-2;
+    align-items: center;
+    margin-bottom: $space-1;
+}
+
+.commitHash {
+    font-size: $text-xs;
+    color: var(--accent-orange);
+}
+
+.commitDate {
+    font-size: $text-sm;
+    color: var(--text-dim);
+}
+
+.headBadge {
+    padding: $space-0-5 $space-2;
+    font-size: $text-xs;
+    color: var(--accent-green);
+    background: color-alpha($color-status-success-rgb, $experience-head-badge-bg-alpha);
+    border: $border-width-thin solid color-alpha($color-status-success-rgb, $experience-head-badge-border-alpha);
+    border-radius: $radius-sm;
+}
+
+.commitRole {
+    font-size: $experience-role-clamp;
+    font-weight: 700;
+    color: var(--theme-color);
+    transition: filter var(--transition-fast);
+}
+
+.commitCompany {
+    color: var(--text-primary);
+}
+
+.commitInfo {
+    margin-top: $space-0-5;
+    font-size: $text-sm;
+    color: var(--text-dim);
+}
+
+/* Expandable details */
+.details {
+    overflow: hidden;
+}
+
+.detailsInner {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    padding-left: $space-2;
+    margin-top: $space-3;
+    border-left: $border-width-sm solid rgb(var(--glow-blue-rgb) / $experience-detail-border-alpha);
+}
+
+.detail {
+    padding-left: $space-3;
+    font-size: $text-sm;
+    line-height: 1.75;
+    color: var(--text-primary);
+}
+
+.detailArrow {
+    color: var(--text-dim);
+}
+
+.techPills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-1-5;
+    padding-top: $space-2;
+    padding-left: $space-3;
+}
+
+.techPill {
+    padding: $space-0-75 $form-field-padding-y;
+    font-size: $text-xs;
+    color: var(--text-dim);
+    background: var(--pill-bg);
+    border: $border-width-thin solid var(--pill-border);
+    border-radius: $radius-sm;
+}

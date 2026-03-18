@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js build outputs
+.next
+out
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+*.md
+docs/
+LICENSE
+
+# Old Vite source (if not yet removed)
+src/
+
+# Environment files (secrets)
+.env*.local
+
+# Test files
+*.test.*
+*.spec.*
+__tests__/
+coverage/

@@ -1,0 +1,49 @@
+.terminal {
+    overflow: hidden;
+    background: var(--bg-terminal);
+    border: $border-width-thin solid rgb(var(--glow-blue-rgb) / $terminal-border-alpha);
+    border-radius: var(--radius);
+    box-shadow: $shadow-terminal;
+}
+
+.titleBar {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    padding: $form-field-padding-y $space-4;
+    background: var(--bg-secondary);
+    border-bottom: $border-width-thin solid rgb(var(--glow-blue-rgb) / $terminal-titlebar-border-alpha);
+}
+
+.dot {
+    width: $space-3;
+    height: $space-3;
+    border-radius: 50%;
+}
+
+.dotRed {
+    background: var(--dot-red);
+}
+
+.dotYellow {
+    background: var(--dot-yellow);
+}
+
+.dotGreen {
+    background: var(--dot-green);
+}
+
+.titleText {
+    margin-left: $space-2;
+    font-family: var(--font-mono);
+    font-size: $text-xs;
+    color: var(--text-dim);
+}
+
+.body {
+    padding: $space-5;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    line-height: 1.7;
+    color: #{$color-terminal-green};
+}

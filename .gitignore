@@ -1,0 +1,61 @@
+# ==============================================================================
+# HomeLab .gitignore
+# ==============================================================================
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Docker Volumes (persistent data, databases, caches, logs) ─────────────────
+volumes/
+
+# ── Recordings & Media ───────────────────────────────────────────────────────
+/home/storage/records/
+
+# ── Node.js Dependencies ─────────────────────────────────────────────────────
+node_modules/
+
+# ── Build Outputs ─────────────────────────────────────────────────────────────
+portfolio/.next/
+portfolio/dist/
+ELHUB/client/dist/
+ELHUB/server/dist/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Database Files ────────────────────────────────────────────────────────────
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+
+# ── OS Files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ── Temporary Files ───────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+
+# ── TypeScript Build Info ─────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Package Lock (subprojects — root keeps theirs) ────────────────────────────
+# Keep root lock files, ignore nested ones if preferred
+# ── Workflows ─────────────────────────────────────────────────────────────────
+workflows/
+
+# ── Security Docs ─────────────────────────────────────────────────────────────
+security.md

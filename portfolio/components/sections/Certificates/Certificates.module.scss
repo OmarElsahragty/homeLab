@@ -1,0 +1,82 @@
+.certificates {
+    position: relative;
+    padding: $space-24 0 $space-32;
+
+    @include md {
+        padding: $space-32 0;
+    }
+}
+
+.bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary), var(--bg-primary));
+}
+
+.inner {
+    position: relative;
+    z-index: 10;
+    @include section-inner;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-6;
+
+    @include sm {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @include lg {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.certCard {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.certImage {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-terminal);
+    border: none;
+
+    &:hover .image {
+        filter: brightness(1.08);
+        transform: scale(1.03);
+    }
+}
+
+.image {
+    object-fit: cover;
+    transition:
+        transform $transition-slow,
+        filter $transition-slow;
+}
+
+.certInfo {
+    padding: $space-4 $space-4 $space-5;
+}
+
+.certTitle {
+    margin-bottom: $space-1;
+    font-size: $text-base;
+    font-weight: 700;
+    color: var(--theme-color, var(--text-primary));
+}
+
+.certIssuer {
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: var(--text-dim);
+}

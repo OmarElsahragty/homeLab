@@ -1,0 +1,119 @@
+@use "variables" as *;
+
+/* ============================================================================
+     Base — CSS Reset + Element Defaults
+     Extracted from globals.scss so the reset layer is isolated and reusable.
+     ============================================================================ */
+
+/* ---------- Box-Model Reset ---------- */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+/* ---------- Root Element ---------- */
+html {
+    scroll-behavior: smooth;
+    text-size-adjust: 100%;
+    /* stylelint-disable-line property-no-vendor-prefix */
+}
+
+/* ---------- Body ---------- */
+body {
+    overflow-x: hidden;
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: var(--body-bg);
+    background-attachment: fixed;
+    transition:
+        background var(--transition-normal),
+        color var(--transition-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---------- Interactive Elements ---------- */
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+input,
+textarea {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+}
+
+/* ---------- Media ---------- */
+img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* ---------- Lists ---------- */
+ul,
+ol {
+    list-style: none;
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 0.5rem;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: $dark-scrollbar-track;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: $dark-scrollbar-thumb;
+    border-radius: 0.25rem;
+}
+
+html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-blue);
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-track {
+    background: $light-scrollbar-track;
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: $light-scrollbar-thumb;
+    border-radius: 0.25rem;
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-blue);
+}
+
+/* ---------- Selection ---------- */
+html[data-theme="dark"] ::selection {
+    color: $dark-selection-text;
+    background-color: $dark-selection-bg;
+}
+
+html[data-theme="light"] ::selection {
+    color: $light-selection-text;
+    background-color: $light-selection-bg;
+}
+
+/* ---------- Section Scroll Offset ---------- */
+section[id] {
+    scroll-margin-top: var(--nav-height);
+}
+
+/* ---------- Focus Styles ---------- */
+*:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}

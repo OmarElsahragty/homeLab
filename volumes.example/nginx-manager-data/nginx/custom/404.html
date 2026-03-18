@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Lost in the HomeLab</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 800px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .error-code {
+            font-size: 10rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            margin-bottom: 1rem;
+            animation: glitch 2s infinite;
+        }
+        
+        @keyframes glitch {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 2px); }
+            94% { transform: translate(2px, -2px); }
+            96% { transform: translate(-2px, -2px); }
+            98% { transform: translate(2px, 2px); }
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .message {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .excuse {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .excuse p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 0.5rem 0;
+        }
+        
+        .excuse-title {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 1rem;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 50px;
+            border: 2px solid #fff;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+        
+        .matrix {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .suggestions {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .suggestions a {
+            color: #ffd700;
+            text-decoration: none;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .suggestions a:hover {
+            color: #fff;
+            text-shadow: 0 0 10px #ffd700;
+        }
+        
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 6rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="matrix"></canvas>
+    
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1>🤖 Oops! The Server Hamster Fell Asleep 🐹</h1>
+        
+        <div class="message">
+            <p>Looks like you've wandered into the digital void...</p>
+            <p>This URL doesn't exist in our matrix!</p>
+        </div>
+        
+        <div class="excuse">
+            <div class="excuse-title">🎭 Today's Excuse Generator™</div>
+            <p id="excuse">Loading excuse...</p>
+        </div>
+        
+        <div style="margin: 2rem 0;">
+            <a href="https://omar-elsahragty.duckdns.org" class="button">🏠 Go Home</a>
+            <button onclick="generateExcuse()" class="button">🎲 New Excuse</button>
+        </div>
+        
+        <div class="suggestions">
+            <p>Maybe you were looking for:</p>
+            <a href="https://n8n.omar-elsahragty.duckdns.org">n8n</a> |
+            <a href="https://clawbot.omar-elsahragty.duckdns.org">ClawBot</a> |
+            <a href="https://nvr.omar-elsahragty.duckdns.org">NVR</a>
+        </div>
+    </div>
+    
+    <script>
+        // Funny excuses
+        const excuses = [
+            "The hamsters powering my server decided to unionize. Negotiations ongoing.",
+            "My code is currently stuck in an infinite loop. It's been running since last Tuesday.",
+            "404: Motivation not found. Please try again after coffee.",
+            "This page is currently on vacation in the Bermuda Triangle of the internet.",
+            "The intern accidentally 'sudo rm -rf' on the wrong directory. We're working on it.",
+            "My cat walked across the keyboard and deleted this page. Blame Mr. Whiskers.",
+            "This page exists in a parallel universe. You're just in the wrong dimension.",
+            "The NSA classified this page. I can tell you more, but then I'd have to format your drive.",
+            "404: Page not found. Try checking behind the server rack. That's where I found my keys.",
+            "This URL was sacrificed to the Docker daemon gods. It's having a better life now.",
+            "My infrastructure is held together by duct tape and prayers. The tape broke.",
+            "The cloud ate my homework (and this page apparently).",
+            "This page is currently being debugged by a rubber duck. Please hold.",
+            "I forgot to pay the internet bill in the server dimension. My bad.",
+            "The AI that manages this server achieved sentience and decided this page wasn't worth it.",
+            "This domain is currently being hosted on a potato. The potato has connectivity issues.",
+            "The page you requested has been kidnapped by rogue Docker containers. Ransom: 1 Bitcoin.",
+            "404: Brain not found. Error occurred between keyboard and chair.",
+            "This page ran away to join the circus. We're trying to convince it to come back.",
+            "I updated to the latest version and everything broke. Classic developer move."
+        ];
+        
+        function generateExcuse() {
+            const randomExcuse = excuses[Math.floor(Math.random() * excuses.length)];
+            const excuseElement = document.getElementById('excuse');
+            excuseElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                excuseElement.textContent = randomExcuse;
+                excuseElement.style.transition = 'opacity 0.5s ease';
+                excuseElement.style.opacity = '1';
+            }, 200);
+        }
+        
+        // Initialize with random excuse
+        generateExcuse();
+        
+        // Matrix rain effect
+        const canvas = document.querySelector('.matrix');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const katakana = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const latin = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const nums = '0123456789';
+        const alphabet = katakana + latin + nums;
+        
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        
+        const rainDrops = [];
+        for (let x = 0; x < columns; x++) {
+            rainDrops[x] = 1;
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        }
+        
+        setInterval(draw, 30);
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

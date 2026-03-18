@@ -1,0 +1,245 @@
+# Frigate NVR Configuration File
+# Optimized for Intel i5-8300H (4C/8T) with maximum CPU utilization
+# Configuration Strategy: CPU-only processing with maximum thread allocation for reliability
+# Hardware Acceleration: Intel Quick Sync Video (VAAPI) for video decode/encode, CPU for detection
+
+# Object Detection Configuration - Intel GPU OpenVINO for maximum performance
+# Uses Intel UHD 630 GPU acceleration with OpenVINO backend for optimal inference speed
+# OpenVINO provides dedicated GPU compute for object detection, freeing CPU for other tasks
+detectors:
+  openvino: # Intel GPU acceleration with OpenVINO for 10-50ms inference speed
+    type: openvino
+    device: GPU # Use Intel UHD 630 for hardware-accelerated inference
+
+# Model Configuration - Optimized for Intel GPU OpenVINO inference
+# Default SSDLite MobileNet v2 provides excellent performance with Intel GPU acceleration
+# Expected inference speed: 10-50ms (vs 80ms+ CPU-only)
+model:
+  width: 300
+  height: 300
+  input_tensor: nhwc
+  input_pixel_format: bgr
+  path: /openvino-model/ssdlite_mobilenet_v2.xml
+  labelmap_path: /openvino-model/coco_91cl_bkgr.txt
+
+
+# MQTT Integration Settings
+# Disabled for standalone operation - reduces network overhead and CPU usage
+# Enable and configure if integrating with Home Assistant or other MQTT-based systems
+# Performance impact when enabled: ~2-5% additional CPU usage for message publishing
+mqtt:
+  enabled: false # Disabled: eliminates MQTT broker dependency and network traffic overhead
+
+# FFmpeg Configuration - Optimized for Intel i5-8300H + UHD 630 GPU Hardware Acceleration
+# Strategy: Intel GPU (VAAPI) for hardware video encoding/decoding + CPU for detection
+# Thread allocation optimized for hybrid GPU video processing + CPU detection workload
+ffmpeg:
+  global_args: -hide_banner -loglevel warning -threads 2 # Minimal threads: let GPU handle video processing
+  hwaccel_args: preset-vaapi # Intel UHD 630 hardware acceleration for video decode/encode
+  input_args: preset-rtsp-generic # Optimized RTSP input handling for IP cameras
+  output_args:
+    detect: -threads 1 -f rawvideo -pix_fmt yuv420p # Detection stream: minimal CPU, let GPU handle video
+    record: preset-record-generic # Recording stream: standard hardware-accelerated H.264 encoding
+
+# Go2RTC Stream Management - Optimized for Intel GPU hardware acceleration
+# Strategy: Use Intel GPU for video transcoding, higher resolution for better detection
+# Intel GPU VAAPI acceleration provides excellent transcoding performance
+go2rtc:
+  streams:
+    # High Quality Streams - Used for recording with Intel GPU passthrough
+    kitchen_c110_hq: rtsp://USERNAME:PASSWORD@LOCAL_IP:554/stream1 # Native 720p from camera (recording)
+    living_c110_hq: rtsp://USERNAME:PASSWORD@LOCAL_IP:554/stream1 # Native 720p from camera (recording)
+
+    # Intel GPU Accelerated Detection Streams - Hardware transcoding for optimal performance
+    kitchen_c110_detect: 
+      ffmpeg:kitchen_c110_hq#video=h264#width=640#height=480#fps=10#hardware                      # Intel GPU transcoding: 640x480@10fps
+    living_c110_detect: 
+      ffmpeg:living_c110_hq#video=h264#width=640#height=480#fps=10#hardware                     # Intel GPU accelerated transcoding
+
+# Camera Definitions - Tapo C110 IP Cameras with Dual-Stream Configuration
+# Architecture: Separate streams for detection (ultra-low res) and recording (high quality)
+# Performance: Detection at 320x240@2fps provides smooth operation while recording maintains 720p quality
+cameras:
+  kitchen_c110:
+    enabled: true
+    ffmpeg:
+      inputs:
+        # Detection Input - Balanced resolution stream for CPU object detection and live viewing
+        - path: rtsp://127.0.0.1:8554/kitchen_c110_detect # Go2RTC transcoded: 640x480@10fps with Intel GPU acceleration
+          input_args: preset-rtsp-restream # Optimized for restreaming from Go2RTC
+          roles:
+            - detect # Used by CPU detection pipeline and live viewing in web UI
+        # Recording Input - Full resolution stream for high-quality recordings
+        - path: rtsp://127.0.0.1:8554/kitchen_c110_hq # Go2RTC passthrough: native 720p@25fps for quality recordings
+          input_args: preset-rtsp-restream # Optimized for restreaming from Go2RTC
+          roles:
+            - record # Used exclusively for motion-triggered recording storage
+
+    # Object Detection Configuration - Higher resolution with Intel GPU acceleration
+    # Resolution choice: 640x480 with GPU-accelerated video processing for better performance
+    # Frame rate: 10fps for responsive detection with Intel GPU handling video workload
+    detect:
+      enabled: true
+      width: 640 # Standard width: good detection accuracy with GPU-accelerated video processing
+      height: 480 # Standard height: balanced resolution for reliable person detection
+      fps: 10 # Higher frame rate: Intel GPU acceleration enables better responsiveness
+
+    # Motion Detection Settings - Optimized for higher resolution CPU processing
+    # Parameters adjusted for 640x480 resolution to maintain detection sensitivity
+    motion:
+      enabled: true
+      threshold: 30 # Motion sensitivity: optimized for CPU processing with higher resolution
+      contour_area: 100 # Minimum motion size: standard value for 640x480 resolution
+      frame_height: 100 # Motion processing resolution: standard for balanced CPU performance
+      improve_contrast: false # Contrast enhancement disabled: saves CPU cycles for detection threads
+      frame_alpha: 0.01 # Background adaptation rate: standard for stable detection
+
+    # Recording Configuration - Motion-triggered storage with 14-day retention
+    # Only records when motion is detected, significantly reducing storage requirements vs continuous recording
+    record:
+      enabled: true
+      continuous:
+        days: 20
+      motion:
+        days: 0
+    objects:
+      track:
+        - person # Security focus: only track human presence, ignore pets for better performance
+      filters:
+        person:
+          min_area: 2000 # Minimum detection size: standard for 640x480 resolution
+          threshold: 0.75 # High confidence required: reduces false person detections
+
+    # Detection Zone Configuration - Kitchen area monitoring
+    # Coordinates define the active detection area within the camera's field of view
+    zones:
+      Kitchen:
+        coordinates: 
+          0.115,0,0.292,0,0.344,0,0.384,0,0.413,0,0.498,0,0.577,0,0.729,0,0.842,0,1,0,1,0.218,1,0.54,1,1,0.805,1,0.343,1,0,1,0,0.555,0,0
+        loitering_time: 0 # Immediate detection: no delay required for zone presence
+
+        inertia: 3
+  living_c110:
+    enabled: true
+    ffmpeg:
+      inputs:
+        # Detection Input - Balanced resolution stream for CPU object detection and live viewing
+        - path: rtsp://127.0.0.1:8554/living_c110_detect # Go2RTC transcoded: 640x480@10fps with Intel GPU acceleration
+          input_args: preset-rtsp-restream # Optimized for restreaming from Go2RTC
+          roles:
+            - detect # Used by CPU detection pipeline and live viewing in web UI
+        # Recording Input - Full resolution stream for high-quality recordings
+        - path: rtsp://127.0.0.1:8554/living_c110_hq # Go2RTC passthrough: native 720p@25fps for quality recordings
+          input_args: preset-rtsp-restream # Optimized for restreaming from Go2RTC
+          roles:
+            - record # Used exclusively for motion-triggered recording storage
+
+    # Object Detection Configuration - Higher resolution with Intel GPU acceleration
+    # Resolution choice: 640x480 with GPU-accelerated video processing for better performance
+    # Frame rate: 10fps for responsive detection with Intel GPU handling video workload
+    detect:
+      enabled: true
+      width: 640 # Standard width: good detection accuracy with GPU-accelerated video processing
+      height: 480 # Standard height: balanced resolution for reliable person detection
+      fps: 10 # Higher frame rate: Intel GPU acceleration enables better responsiveness
+
+    # Motion Detection Settings - Optimized for higher resolution CPU processing
+    # Parameters adjusted for 640x480 resolution to maintain detection sensitivity
+    motion:
+      enabled: true
+      threshold: 30 # Motion sensitivity: optimized for CPU processing with higher resolution
+      contour_area: 100 # Minimum motion size: standard value for 640x480 resolution
+      frame_height: 100 # Motion processing resolution: standard for balanced CPU performance
+      improve_contrast: false # Contrast enhancement disabled: saves CPU cycles for detection threads
+      frame_alpha: 0.01 # Background adaptation rate: standard for stable detection
+
+    # Recording Configuration - Motion-triggered storage with 14-day retention
+    # Only records when motion is detected, significantly reducing storage requirements vs continuous recording
+    record:
+      enabled: true
+      continuous:
+        days: 20
+      motion:
+        days: 0
+    objects:
+      track:
+        - person # Security focus: only track human presence, ignore pets for better performance
+      filters:
+        person:
+          min_area: 2000 # Minimum detection size: standard for 640x480 resolution
+          threshold: 0.75 # High confidence required: reduces false person detections
+
+    # Detection Zone Configuration - Living room area monitoring
+    # Coordinates define the active detection area within the camera's field of view
+    zones:
+      Living_Room:
+        coordinates: 
+          0.093,0,0.104,0.708,0.103,1,0.284,0.999,0.7,1,0.881,1,0.898,0.908,0.866,0.894,0.852,0.843,0.852,0.813,0.851,0.778,0.847,0.757,0.844,0.724,0.84,0.655,0.816,0.607,0.816,0.545,0.834,0.487,0.855,0.454,0.864,0.437,0.88,0.428,0.892,0.403,0.907,0.376,0.923,0.354,0.938,0.342,0.961,0.34,0.985,0.341,1,0.345,1,0.184,1,0.025,1,0,0.969,-0.001,0.683,0,0.405,0
+        loitering_time: 0 # Immediate detection: no delay required for zone presence
+
+# Snapshot Configuration - Event thumbnails and preview images
+# Balances image quality with storage efficiency for quick event identification
+        inertia: 3
+    review:
+      detections:
+        required_zones: Living_Room
+snapshots:
+  enabled: true # Enable snapshot capture for event thumbnails and notifications
+  timestamp: true # Include timestamp overlay for event correlation
+  bounding_box: true # Show detection boxes for quick object identification
+  crop: false # Full frame snapshots: provides complete context for events
+  retain:
+    default: 14 # Snapshot retention: matches recording retention for consistency
+  quality: 80 # JPEG quality: balances file size with image clarity (80% = good quality)
+
+# Review System Configuration - Motion Timeline Only (No Alert Queue)
+# Configured for streamlined workflow: all events appear directly in motion timeline
+# No alert review required - optimized for continuous monitoring rather than event triage
+review:
+  alerts:
+    labels: [] # No alert queue: all motion events bypass alert system for immediate timeline visibility
+  detections:
+    labels:
+      - person # Person detections logged in timeline: trackable for security review
+
+# Global Recording Configuration - Motion-Triggered Storage Strategy
+# Optimized for storage efficiency: only records during motion/detection events
+# Pre/post capture ensures complete event context while minimizing storage usage
+record:
+  enabled: true # Enable motion-triggered recording system
+  expire_interval: 60 # Cleanup frequency: check for expired recordings every minute
+  alerts:
+    pre_capture: 10 # Pre-recording buffer: capture 10 seconds before alert trigger for context
+    post_capture: 15 # Post-recording buffer: continue recording 15 seconds after alert ends
+    retain:
+      days: 20 # Alert recording retention: 20 days storage for security incident review
+      mode: motion # Motion-based alert retention: only store segments with actual motion
+  detections:
+    pre_capture: 10 # Pre-recording buffer: capture 10 seconds before detection trigger for context
+    post_capture: 15 # Post-recording buffer: continue recording 15 seconds after detection ends
+    retain:
+      days: 20 # Detection recording retention: 20 days storage for security incident review
+      mode: motion # Motion-based detection retention: only store segments with actual motion
+
+# Web UI Configuration
+# Default settings provide optimal user experience for this hardware configuration
+ui: {}
+
+# Authentication Configuration
+# Disabled - nginx reverse proxy handles authentication
+auth:
+  enabled: false
+  reset_admin_password: false
+
+# Intel GPU Performance Monitoring - Track hardware acceleration performance
+# Enables detailed monitoring of Intel UHD 630 GPU utilization and statistics
+telemetry:
+  stats:
+    intel_gpu_stats: true # Enable Intel GPU performance monitoring
+    network_bandwidth: false # Disable network monitoring to reduce overhead
+
+# Frigate Version Specification
+# Specifies target Frigate version for configuration compatibility
+version: 0.17-0
+detect:
+  enabled: true

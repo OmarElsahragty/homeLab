@@ -1,0 +1,589 @@
+// =============================================================================
+// Portfolio — SCSS Design Tokens
+// =============================================================================
+// These are compile-time SCSS tokens (spacing, typography, breakpoints).
+// Runtime theming (colors, surfaces) lives in globals.scss as CSS custom
+// properties so theme-switching works without a rebuild.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Typography Scale — 4.5-step modular scale based on 1rem ≈ 16px
+// -----------------------------------------------------------------------------
+$text-xs: 0.75rem; //  12px — badges, meta, commit hashes
+$text-sm: 0.875rem; //  14px — secondary body, nav items, labels
+$text-base: 1rem; //  16px — body text
+$text-lg: 1.125rem; //  18px — card titles, logo
+$text-xl: 1.25rem; //  20px
+$text-2xl: 1.5rem; //  24px
+$text-3xl: 1.875rem; //  30px
+$text-4xl: 2.25rem; //  36px
+$text-5xl: 3rem; //  48px
+
+// -----------------------------------------------------------------------------
+// Spacing Scale — 4px (0.25rem) base unit
+// -----------------------------------------------------------------------------
+$space-1: 0.25rem; //   4px
+$space-2: 0.5rem; //   8px
+$space-3: 0.75rem; //  12px
+$space-4: 1rem; //  16px
+$space-5: 1.25rem; //  20px
+$space-6: 1.5rem; //  24px
+$space-8: 2rem; //  32px
+$space-10: 2.5rem; //  40px
+$space-12: 3rem; //  48px
+$space-14: 3.5rem; //  56px
+$space-16: 4rem; //  64px
+$space-20: 5rem; //  80px
+$space-24: 6rem; //  96px
+$space-32: 8rem; // 128px
+
+// -----------------------------------------------------------------------------
+// Breakpoints — min-width media-query thresholds (px)
+// Use @include sm / md / lg / xl from _mixins.scss
+// -----------------------------------------------------------------------------
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+// -----------------------------------------------------------------------------
+// Layout
+// -----------------------------------------------------------------------------
+$max-width: 75rem; // 1200px — default section inner width (matches --max-width)
+$max-width-narrow: 56rem; // 896px  — Experience section
+$max-width-mid: 72rem; // 1152px — Contact section
+$inner-padding-x: $space-6; // 1.5rem — horizontal gutters
+
+// Section vertical rhythm
+$section-padding-v-mobile: $space-24; //  6rem — top/bottom on small screens
+$section-padding-v-desktop: $space-32; //  8rem — top/bottom on large screens
+
+// -----------------------------------------------------------------------------
+// Border Radius
+// -----------------------------------------------------------------------------
+$radius-sm: 0.25rem; //  4px
+$radius-md: 0.5rem; //  8px
+$radius-lg: 0.75rem; // 12px
+$radius-xl: 1rem; // 16px
+$radius-2xl: 1.5rem; // 24px
+$radius-pill: 1.25rem; // 20px — used for small pill/badge shapes
+$radius-full: 9999px; // fully rounded
+
+// -----------------------------------------------------------------------------
+// Transitions
+// -----------------------------------------------------------------------------
+$transition-fast: 150ms ease;
+$transition-base: 200ms ease;
+$transition-slow: 300ms ease;
+
+// -----------------------------------------------------------------------------
+// Font Weights
+// -----------------------------------------------------------------------------
+$font-weight-base: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extrabold: 800;
+
+// -----------------------------------------------------------------------------
+// Opacity / Alpha Levels — For consistent rgba patterns
+// Semantic naming: opacity naming follows design system pattern
+// Used in: borders, backgrounds, overlays, text
+// Note: These are used IN rgb() function calls, not as standalone var()
+// Example: background: rgb(255 255 255 / #{$alpha-xs});
+// -----------------------------------------------------------------------------
+$alpha-xs: 0.05;
+$alpha-sm: 0.08;
+$alpha-md: 0.1;
+$alpha-lg: 0.12;
+$alpha-xl: 0.14;
+$alpha-2xl: 0.18;
+$alpha-heavy: 0.25;
+$alpha-darker: 0.55;
+$alpha-dark: 0.92;
+$alpha-darkest: 0.98;
+
+// Background blur levels
+$blur-sm: 12px;
+$blur-md: 16px;
+$blur-lg: 20px;
+
+// Line heights
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+$line-height-loose: 2;
+
+// Letter spacing
+$letter-spacing-tight: -0.02em;
+$letter-spacing-normal: 0;
+$letter-spacing-loose: 0.05em;
+
+// Z-index layers (also defined in globals.scss as CSS custom properties)
+$z-background: 0;
+$z-content: 1;
+$z-card: 10;
+$z-navbar: 50;
+$z-cursor-ring: 9998;
+$z-cursor: 9999;
+
+// Component-specific sizing
+$icon-button-size: 2.25rem;
+$icon-button-size-small: 2.5rem;
+$icon-button-size-large: 3.25rem;
+$toggle-button-size: 2.25rem;
+$section-underline-width: 7.5rem;
+$section-underline-height: 2px;
+$section-title-clamp: clamp(1.875rem, 5vw, 3rem);
+$section-subtitle-clamp: clamp(0.875rem, 2vw, 1.05rem);
+
+// Modal / Lightbox sizing
+$lightbox-width: min(90vw, 1280px);
+$lightbox-height: min(86vh, 860px);
+$lightbox-modal-bg-alpha: 0.92;
+
+// Form field sizing
+$form-field-padding-y: 0.625rem;
+$form-field-padding-x: 0.875rem;
+$toggle-indicator-size: 0.75rem;
+
+// Shadow values (box-shadows and drop-shadows)
+// Format: offset-x offset-y blur spread-radius rgba(r g b / alpha)
+$shadow-sm: 0 0.125rem 0.25rem rgb(0 0 0 / 0.1);
+$shadow-md: 0 0.5rem 1rem rgb(0 0 0 / 0.15);
+$shadow-lg: 0 1.25rem 2.5rem rgb(0 0 0 / 0.2);
+$shadow-xl: 0 2rem 4rem rgb(0 0 0 / 0.25);
+$shadow-2xl: 0 12px 40px rgb(0 0 0 / 0.25);
+
+// Drop-shadow filter (for icons over dark backgrounds)
+$drop-shadow-icon: drop-shadow(0 0.125rem 0.25rem rgb(0 0 0 / 0.5));
+
+// Text shadows (component-specific)
+$text-shadow-glow-blue: 0 0 10px rgb(42 114 200 / 0.55),
+    0 0 20px rgb(42 114 200 / 0.35);
+
+// Transform values
+$transform-offset-micro: 4px;
+$transform-offset-small: 6px;
+$transform-offset-medium: 8px;
+
+// Opacity / transparency state colors (grayscale for neutral states)
+// Used for disabled, hover, focus states
+$gray-overlay-light: rgb(128 128 128 / 0.12);
+$gray-overlay-medium: rgb(128 128 128 / 0.25);
+$gray-overlay-dark: rgb(0 0 0 / 0.5);
+
+// Contact form specific color backgrounds (dark theme overrides)
+// Dark blue backgrounds for modal surfaces
+$contact-card-bg-dark: rgb(18 26 48 / 0.8);
+$contact-card-bg-dark-hover: rgb(24 34 58 / 0.9);
+$contact-card-border-dark: rgb(148 163 198 / 0.18);
+
+// Component-specific color overlays and states
+// Usually accent colors with specific opacity for backgrounds/borders
+$nav-active-indicator-bg: rgb(42 114 200 / 0.1);
+$nav-active-indicator-border: rgb(42 114 200 / 0.2);
+$nav-active-mobile-bg: rgb(42 114 200 / 0.08);
+
+// Projects carousel button colors (for light image backgrounds)
+$projects-carousel-btn-text: rgb(20 30 50 / 0.85);
+$projects-carousel-btn-bg: rgb(255 255 255 / 0.92);
+$projects-carousel-btn-bg-hover: rgb(255 255 255 / 0.98);
+$projects-carousel-btn-border: rgb(74 96 128 / 0.2);
+$projects-carousel-btn-shadow: drop-shadow(0 0.125rem 0.25rem rgb(0 0 0 / 0.35));
+
+// Lightbox overlay and surface colors
+$lightbox-overlay-bg: rgb(0 0 0 / 0.92);
+$lightbox-icon-text-light: rgb(255 255 255 / 0.7);
+$lightbox-icon-text-lighter: rgb(255 255 255 / 0.85);
+$lightbox-icon-text-lightest: rgb(255 255 255 / 0.9);
+$lightbox-icon-bg-light: rgb(255 255 255 / 0.14);
+$lightbox-icon-bg-medium: rgb(255 255 255 / 0.28);
+$lightbox-icon-bg-lighter: rgb(255 255 255 / 0.1);
+
+// ============================================================================
+// Primitives (Colors & Themes)
+// ============================================================================
+
+// Traffic light dots
+$color-dot-red: #ff5f56;
+$color-dot-yellow: #ffbd2e;
+$color-dot-green: #27c93f;
+
+// Dark Theme Primitives
+$dark-bg-primary: rgb(10 14 25 / 0.99);
+$dark-bg-secondary: rgb(16 22 40 / 0.97);
+$dark-bg-terminal: #070b16;
+$dark-bg-card: rgb(18 26 48 / 0.92);
+$dark-text-primary: #edf2ff;
+$dark-text-dim: #a3b8d4;
+$dark-text-muted: rgb(163 184 212 / 0.6);
+$dark-accent-yellow: #fcd34d;
+$dark-accent-blue: #60a5fa;
+$dark-accent-purple: #c084fc;
+$dark-accent-green: #34d399;
+$dark-accent-orange: #fb923c;
+$dark-accent-cyan: #22d3ee;
+$dark-border-subtle: rgb(240 246 252 / 0.1);
+$dark-border-light: rgb(240 246 252 / 0.14);
+$dark-border-medium: rgb(240 246 252 / 0.22);
+
+// Theme-aware surface tokens (Dark)
+$dark-pill-bg: rgb(255 255 255 / 0.08);
+$dark-pill-border: rgb(255 255 255 / 0.14);
+$dark-pill-border-hover: rgb(255 255 255 / 0.28);
+$dark-terminal-border: rgb(255 255 255 / 0.12);
+$dark-divider: rgb(255 255 255 / 0.1);
+$dark-input-border: rgb(255 255 255 / 0.14);
+$dark-icon-bg: rgb(255 255 255 / 0.08);
+$dark-card-hover-border: rgb(255 255 255 / 0.18);
+
+// Component-specific tokens (Dark)
+$dark-body-bg: #090d18;
+$dark-section-mid: rgb(30 50 80 / 0.4);
+$dark-navbar-scrolled-bg: rgb(9 13 24 / 0.96);
+$dark-mobile-menu-bg: rgb(9 13 24 / 0.98);
+$dark-footer-bg: rgb(9 13 24 / 0.95);
+$dark-card-bg: rgb(18 26 48 / 0.92);
+
+// Form surface tokens (Dark)
+$dark-form-bg: rgb(14 20 38 / 0.96);
+$dark-form-header-bg: rgb(20 28 50 / 0.98);
+$dark-form-shadow-1: rgb(5 15 50 / 0.45);
+$dark-form-shadow-2: rgb(96 165 250 / 0.06);
+
+// Light Theme Primitives
+$light-bg-primary: rgb(244 248 254 / 0.98);
+$light-bg-secondary: rgb(248 252 255 / 1);
+$light-bg-terminal: rgb(249 250 251 / 1);
+$light-bg-card: rgb(255 255 255 / 0.97);
+$light-text-primary: #0d1929;
+$light-text-dim: #374151;
+$light-text-muted: rgb(55 65 81 / 0.55);
+$light-accent-yellow: #92400e;
+$light-accent-blue: #1d4ed8;
+$light-accent-purple: #7c3aed;
+$light-accent-green: #047857;
+$light-accent-orange: #c2410c;
+$light-accent-cyan: #0e7490;
+$light-border-subtle: rgb(13 25 41 / 0.08);
+$light-border-light: rgb(13 25 41 / 0.13);
+$light-border-medium: rgb(13 25 41 / 0.22);
+
+// Theme-aware surface tokens (Light)
+$light-pill-bg: rgb(13 25 41 / 0.06);
+$light-pill-border: rgb(13 25 41 / 0.12);
+$light-pill-border-hover: rgb(13 25 41 / 0.26);
+$light-terminal-border: rgb(13 25 41 / 0.16);
+$light-divider: rgb(13 25 41 / 0.1);
+$light-input-border: rgb(13 25 41 / 0.16);
+$light-icon-bg: rgb(13 25 41 / 0.07);
+$light-card-hover-border: rgb(13 25 41 / 0.2);
+
+// Component-specific tokens (Light)
+$light-body-bg-gradient: linear-gradient(135deg, #eff6ff 0%, #f3f4f6 50%, #f0e9ff 100%);
+$light-section-mid: rgb(59 130 246 / 0.06);
+$light-navbar-scrolled-bg: rgb(255 255 255 / 0.94);
+$light-mobile-menu-bg: rgb(255 255 255 / 0.97);
+$light-footer-bg: rgb(244 248 254 / 0.96);
+$light-card-bg: rgb(255 255 255 / 0.97);
+
+// Form surface tokens (Light)
+$light-form-bg: rgb(250 252 255 / 0.98);
+$light-form-header-bg: rgb(240 245 255 / 0.98);
+$light-form-shadow-1: rgb(0 10 40 / 0.08);
+$light-form-shadow-2: rgb(96 165 250 / 0.04);
+
+// ============================================================================
+// Glow & Interactive Surface Tokens
+// ============================================================================
+// RGB triplets — used as rgb(var(--glow-xxx-rgb) / alpha) in component modules.
+// The RGB base switches per theme; alpha stays in the module for control.
+
+// Dark glow surface RGB bases
+$dark-glow-blue-rgb: 96 165 250;
+$dark-glow-purple-rgb: 192 132 252;
+$dark-glow-green-rgb: 74 222 128;
+$dark-glow-orange-rgb: 255 107 53;
+$dark-glow-yellow-rgb: 255 215 0;
+
+// Light glow surface RGB bases
+$light-glow-blue-rgb: 29 78 216;
+$light-glow-purple-rgb: 124 58 237;
+$light-glow-green-rgb: 4 120 87;
+$light-glow-orange-rgb: 194 65 12;
+$light-glow-yellow-rgb: 255 215 0;
+
+// Glow hover shadow alpha (stronger in dark for visibility)
+$dark-glow-hover-shadow-alpha: 0.35;
+$light-glow-hover-shadow-alpha: 0.2;
+
+// ============================================================================
+// Hero Section Surface Tokens
+// ============================================================================
+$dark-hero-overlay-bg: transparent;
+$light-hero-overlay-bg: rgb(244 248 254 / 0.72);
+$dark-hero-grid-line-rgb: 26 39 68;
+$light-hero-grid-line-rgb: 42 114 200;
+$dark-hero-grid-line-alpha: 0.3;
+$light-hero-grid-line-alpha: 0.18;
+$dark-hero-grid-opacity: 0.035;
+$light-hero-grid-opacity: 0.06;
+$dark-hero-glow-rgb: 88 166 255;
+$light-hero-glow-rgb: 42 114 200;
+
+// ============================================================================
+// Component-Specific Theme Tokens
+// ============================================================================
+
+// Submit button (contrasting text on yellow-accent bg)
+$dark-btn-submit-color: $dark-text-primary;
+$dark-btn-submit-bg: rgb(255 215 0 / 0.05);
+$dark-btn-submit-border: rgb(255 215 0 / 0.18);
+$dark-btn-submit-hover-color: $dark-accent-yellow;
+$dark-btn-submit-hover-bg: rgb(255 215 0 / 0.14);
+$dark-btn-submit-hover-shadow: rgb(255 215 0 / 0.18);
+$light-btn-submit-color: $light-accent-yellow;
+$light-btn-submit-bg: rgb(255 215 0 / 0.18);
+$light-btn-submit-border: rgb(255 215 0 / 0.5);
+$light-btn-submit-hover-color: $light-text-primary;
+$light-btn-submit-hover-bg: rgb(255 215 0 / 0.3);
+$light-btn-submit-hover-shadow: rgb(255 215 0 / 0.2);
+
+// Social icon bg (slightly stronger than --icon-bg in dark mode)
+$dark-social-icon-bg: rgb(255 255 255 / 0.1);
+$light-social-icon-bg: $light-icon-bg;
+
+// Navbar link hover color
+$dark-nav-hover-color: #e8f0fe;
+$light-nav-hover-color: $light-text-primary;
+
+// Terminal Surface Tokens (Dark)
+$term-dark-text-primary: #d0e2f2;
+$term-dark-text-dim: #8a9cb8;
+$term-dark-accent-yellow: #fcd34d;
+$term-dark-accent-blue: #60a5fa;
+$term-dark-accent-green: #34d399;
+$term-dark-accent-orange: #fb923c;
+$term-dark-accent-purple: #c084fc;
+$term-dark-bg-secondary: #1e2840;
+
+// Terminal Surface Tokens (Light)
+$term-light-text-primary: #0d1929;
+$term-light-text-dim: #374151;
+$term-light-accent-yellow: #92400e;
+$term-light-accent-blue: #1d4ed8;
+$term-light-accent-green: #047857;
+$term-light-accent-orange: #c2410c;
+$term-light-accent-purple: #7c3aed;
+$term-light-bg-secondary: rgb(249 250 251 / 1);
+
+// Auto-generated Theme Classes Colors
+$theme-color-ffd700: #ffd700;
+$theme-color-61dafb: #61dafb;
+$theme-color-e2e8f0: #e2e8f0;
+$theme-color-dd0031: #dd0031;
+$theme-color-764abc: #764abc;
+$theme-color-3178c6: #3178c6;
+$theme-color-f7df1e: #f7df1e;
+$theme-color-4ade80: #4ade80;
+$theme-color-339933: #339933;
+$theme-color-e0234e: #e0234e;
+$theme-color-ff6b35: #ff6b35;
+$theme-color-e10098: #e10098;
+$theme-color-010101: #010101;
+$theme-color-dc322f: #dc322f;
+$theme-color-bc8cff: #bc8cff;
+$theme-color-47a248: #47a248;
+$theme-color-4169e1: #4169e1;
+$theme-color-4479a1: #4479a1;
+$theme-color-1287b1: #1287b1;
+$theme-color-005571: #005571;
+$theme-color-dc382d: #dc382d;
+$theme-color-2496ed: #2496ed;
+$theme-color-326ce5: #326ce5;
+$theme-color-4285f4: #4285f4;
+$theme-color-ff9900: #ff9900;
+$theme-color-7b42bc: #7b42bc;
+$theme-color-009639: #009639;
+$theme-color-ffca28: #ffca28;
+$theme-color-f05032: #f05032;
+$theme-color-fcc624: #fcc624;
+$theme-color-58a6ff: #58a6ff;
+
+// Light-mode accessible theme color overrides
+// These shadow --theme-color in light theme for text contrast (WCAG AA).
+// --theme-glow and --theme-bg-opacity keep their vivid values (decorative only).
+$theme-color-light-ffd700: #854d0e; // dark amber-brown   →  6.1:1 on white
+$theme-color-light-f7df1e: #854d0e; // same (JS yellow)   →  6.1:1 on white
+$theme-color-light-4ade80: #166534; // dark green          →  6.4:1 on white
+$theme-color-light-bc8cff: #5b21b6; // dark violet         →  7.9:1 on white
+$theme-color-light-58a6ff: #1d4ed8; // dark blue           →  6.1:1 on white
+$theme-color-light-ff6b35: #c2410c; // dark orange         →  5.0:1 on white
+$theme-color-light-ff9900: #c2410c; // same (AWS orange)   →  5.0:1 on white
+$theme-color-light-ffca28: #92400e; // dark amber (Firebase) → 7.1:1 on white
+$theme-color-light-fcc624: #92400e; // dark amber (Linux)  →  7.1:1 on white
+$theme-color-light-e2e8f0: #334155; // dark slate (Next.js) → 9.7:1 on white
+
+// ============================================================================
+// Core Color Bases — Used directly in module.scss
+// ============================================================================
+$color-white: #ffffff;
+$color-black: #000000;
+
+// Error/Status page colors
+$color-light-slate: #f8fafc;
+$color-dark-slate: #0f172a;
+$color-slate-4: #94a3b8;
+$color-pink: #f472b6;
+$color-dark-slate-2: #1e293b;
+$color-error-red: #f87171;
+
+// Terminal/Code colors
+$color-terminal-green: #3ad86a;
+$color-terminal-blue: #60a5fa;
+$color-primary-blue: #3b82f6;
+
+// Navbar/Navigation
+$color-navbar-text-light: #e8f0fe;
+
+// ============================================================================
+// Border Width Variables
+// ============================================================================
+$border-width-thin: 1px;
+$border-width-sm: 2px;
+$border-width-md: 3px;
+
+// ============================================================================
+// Size Variables (commonly used px/rem values)
+// ============================================================================
+$size-500px: 500px;
+$size-600px: 600px;
+$size-28rem: 28rem; // 448px
+$size-32rem: 32rem; // 512px
+$size-40rem: 40rem; // 640px
+$size-15rem: 15rem; // 240px
+$size-8rem: 8rem; // 128px
+$size-4px: 4px;
+
+// ============================================================================
+// Status Message Colors (rgb triplets for alpha control)
+// ============================================================================
+$color-status-sending-rgb: "255 107 53"; // orange
+$color-status-success-rgb: "74 222 128"; // green
+$color-status-error-rgb: "239 68 68"; // red
+
+// ============================================================================
+// Neutral RGB Bases (for overlays that need alpha control)
+// ============================================================================
+$rgb-black: "0 0 0";
+$rgb-white: "255 255 255";
+
+// ============================================================================
+// Semantic Shadow Tokens
+// ============================================================================
+$shadow-terminal: 0 0 24px rgb(96 165 250 / 0.1),
+    0 8px 32px rgb(0 0 0 / 0.2);
+$shadow-experience-card: 0 25px 50px -12px rgb(5 15 50 / 0.5),
+    0 0 24px rgb(96 165 250 / 0.06);
+$shadow-navbar-scrolled: 0 4px 20px rgb(0 0 0 / 0.15);
+$shadow-not-found-link: 0 0 20px rgb(96 165 250 / 0.3);
+
+// Text shadows (status & error pages)
+$text-shadow-not-found: 0 0 30px rgb(96 165 250 / 0.5),
+    0 0 60px rgb(96 165 250 / 0.25);
+
+// ============================================================================
+// Component-specific hardcoded values → extracted tokens
+// ============================================================================
+
+// Experience section
+$experience-head-badge-bg-alpha: 0.12;
+$experience-head-badge-border-alpha: 0.28;
+$experience-detail-border-alpha: 0.25;
+
+// Projects section
+$projects-dot-inactive-bg: rgb(26 39 68 / 0.22);
+
+// Global error page
+$global-error-padding: $space-10 $space-5;
+$global-error-button-radius: $radius-lg;
+$global-error-pre-radius: $radius-md;
+
+// Micro spacing (half steps not on the 4px grid)
+$space-0-5: 0.125rem; //  2px
+$space-0-75: 0.1875rem; //  3px
+$space-1-5: 0.375rem; //  6px
+
+// Additional blur level
+$blur-xs: 4px;
+
+// Additional sizes
+$size-7: 1.75rem; //  28px — carousel buttons, cert icons
+$size-13-75rem: 13.75rem; // carousel image min-height
+$size-20rem: 20rem; // carousel image max-height
+$size-31-25rem: 31.25rem; // error page max-width
+
+// Clamp typography tokens
+$hero-headline-clamp: clamp(2rem, 5vw, 3.75rem);
+$hero-subtext-clamp: clamp(1rem, 2.5vw, 1.25rem);
+$hero-role-clamp: clamp(0.8rem, 2vw, 1rem);
+$experience-role-clamp: clamp(0.875rem, 2vw, 1.125rem);
+$not-found-code-clamp: clamp(4rem, 18vw, 8rem);
+$not-found-title-clamp: clamp(1.25rem, 4vw, 1.875rem);
+
+// Hero section sizing
+$hero-profile-size-sm: 17.5rem;
+$hero-profile-size-xs: $size-15rem;
+$hero-profile-size-md: 21.25rem;
+$hero-grid-size: 3.75rem;
+$hero-profile-ring-offset: 0.625rem;
+
+// Terminal UI tokens
+$terminal-border-alpha: 0.3;
+$terminal-titlebar-border-alpha: 0.2;
+
+// Not-found page tokens
+$not-found-hover-bg-alpha: 0.1;
+
+// Projects tokens
+$projects-expand-shadow-alpha: 0.4;
+
+// Button tokens
+$glow-btn-bg-alpha: 0.06;
+$glow-btn-border-alpha: 0.5;
+$glow-btn-hover-blue-alpha: 0.14;
+$glow-btn-hover-subtle-alpha: 0.1;
+$glow-btn-hover-shadow-size: 25px;
+
+// Experience positioning
+$experience-line-left: 0.6875rem;
+
+// Global error page tokens
+$global-error-pre-font-size: 0.8125rem;
+
+// ============================================================================
+// Scrollbar & Selection Color Tokens
+// ============================================================================
+$dark-scrollbar-track: #161b22;
+$dark-scrollbar-thumb: #30363d;
+$light-scrollbar-track: #b8dff0;
+$light-scrollbar-thumb: #7abdd8;
+$dark-selection-text: #e6edf3;
+$dark-selection-bg: rgb(88 166 255 / 0.28);
+$light-selection-text: #1a2744;
+$light-selection-bg: rgb(42 114 200 / 0.28);
+
+// Hero profile glow shadow sizes
+$hero-profile-glow-sm: 30px;
+$hero-profile-glow-lg: 60px;
+
+// Breakpoint — extra-small
+$bp-xs: 380px;
+
+// Duck badge font size
+$duck-badge-font-size: $space-8;
+
+// Lightbox close / counter offsets
+$lightbox-close-offset: $form-field-padding-x; // 0.875rem
+$lightbox-close-right: $text-lg; // 1.125rem

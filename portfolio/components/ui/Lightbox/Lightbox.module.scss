@@ -1,0 +1,105 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: $z-cursor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    background: $lightbox-overlay-bg;
+}
+
+.counter {
+    position: absolute;
+    top: $space-5;
+    left: 50%;
+    z-index: 2;
+    padding: $space-1 $lightbox-close-offset;
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: $lightbox-icon-text-light;
+    white-space: nowrap;
+    pointer-events: none;
+    background: $lightbox-icon-bg-lighter;
+    border-radius: $radius-pill;
+    transform: translateX(-50%);
+}
+
+.close {
+    position: absolute;
+    top: $lightbox-close-offset;
+    right: $lightbox-close-right;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $space-10;
+    height: $space-10;
+    color: $lightbox-icon-text-lighter;
+    cursor: pointer;
+    background: $lightbox-icon-bg-light;
+    border-radius: 50%;
+    filter: $drop-shadow-icon;
+    transition:
+        background var(--transition-fast),
+        color var(--transition-fast);
+
+    &:hover {
+        color: #{$color-white};
+        background: $lightbox-icon-bg-medium;
+    }
+}
+
+.nav {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $icon-button-size-large;
+    height: $icon-button-size-large;
+    color: $lightbox-icon-text-lightest;
+    cursor: pointer;
+    background: $lightbox-icon-bg-light;
+    border-radius: 50%;
+    filter: $drop-shadow-icon;
+    transform: translateY(-50%);
+    transition: background var(--transition-fast);
+
+    &:hover {
+        background: $lightbox-icon-bg-medium;
+    }
+
+    &.navLeft {
+        left: $space-4;
+    }
+
+    &.navRight {
+        right: $space-4;
+    }
+
+    @include mobile {
+        width: $icon-button-size-small;
+        height: $icon-button-size-small;
+
+        &.navLeft {
+            left: $space-2;
+        }
+
+        &.navRight {
+            right: $space-2;
+        }
+    }
+}
+
+.imageWrap {
+    position: relative;
+    width: $lightbox-width;
+    height: $lightbox-height;
+    cursor: default;
+}
+
+.image {
+    object-fit: contain;
+}

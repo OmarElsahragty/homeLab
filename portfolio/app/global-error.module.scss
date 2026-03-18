@@ -1,0 +1,61 @@
+.globalError {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: $space-10 $space-5;
+    margin: 0;
+    font-family:
+        Inter,
+        -apple-system,
+        blinkmacsystemfont,
+        system-ui,
+        sans-serif;
+    color: #{$color-light-slate};
+    text-align: center;
+    background: #{$color-dark-slate};
+}
+
+.title {
+    margin-bottom: $space-4;
+    font-size: $text-5xl;
+}
+
+.message {
+    max-width: $size-500px;
+    margin-bottom: $space-8;
+    line-height: 1.6;
+    color: #{$color-slate-4};
+}
+
+.button {
+    padding: $space-3 $space-6;
+    font-size: $text-base;
+    font-weight: $font-weight-medium;
+    color: #{$color-white};
+    cursor: pointer;
+    background: #{$color-primary-blue};
+    border: none;
+    border-radius: $global-error-button-radius;
+}
+
+.details {
+    max-width: $size-600px;
+    margin: $space-8 auto 0;
+    text-align: left;
+}
+
+.summary {
+    color: #{$color-slate-4};
+    cursor: pointer;
+}
+
+.pre {
+    padding: $space-4;
+    margin-top: $space-2;
+    overflow: auto;
+    font-size: $global-error-pre-font-size;
+    color: #{$color-pink};
+    background: #{$color-dark-slate-2};
+    border-radius: $global-error-pre-radius;
+}

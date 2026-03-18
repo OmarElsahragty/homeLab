@@ -1,0 +1,789 @@
+# ==============================================================================
+# UNIFIED HOMELAB INFRASTRUCTURE - DOCKER COMPOSE CONFIGURATION
+# ==============================================================================
+# 
+# This unified configuration combines all core HomeLab services:
+#   - Nginx Proxy Manager (Reverse proxy + Admin UI)
+#   - Frigate NVR (Video surveillance with AI object detection)
+#   - n8n (Workflow automation platform)
+#   - OpenClaw (Multi-channel AI gateway for WhatsApp/Telegram/Discord)
+#   - Portfolio (Next.js SSR portfolio website)
+#
+# Architecture Overview:
+#   Cloudflare Tunnel → Nginx Proxy Manager → Backend Services
+#   
+# Network Flow:
+#   Internet → Cloudflare Edge → Tunnel → NPM (127.0.0.1:80) → Services
+#
+# Volume Organization:
+#   All persistent data stored under: /home/homeLab/volumes/
+#   This centralized approach simplifies:
+#     - Backups (single directory to protect)
+#     - Monitoring (unified storage location)
+#     - Migrations (self-contained structure)
+#
+# Resource Strategy:
+#   - Optimized limits based on actual usage metrics
+#   - Shared nginx-network for inter-service communication
+#   - Each service maintains dedicated databases (performance-optimized)
+#   - Unified logging configuration (10-50MB rotation, 3 files)
+#
+# Management:
+#   Start:      docker compose up -d
+#   Stop:       docker compose down
+#   Restart:    docker compose restart [service]
+#   Logs:       docker compose logs -f [service]
+#   Status:     docker compose ps
+#   Update:     docker compose pull && docker compose up -d
+#
+# Version: 1.0.0
+# Last Updated: 2026-02-18
+# ==============================================================================
+
+# ==============================================================================
+# NETWORKS
+# ==============================================================================
+networks:
+  # Shared network for all services - enables inter-service communication
+  # Used by: NPM, Frigate, n8n, OpenClaw
+  # Purpose: Reverse proxy access, service discovery, isolated communication
+  # Note: This network pre-exists from previous setup, marked as external
+  nginx-network:
+    external: true
+  
+  # Dedicated network for n8n and its PostgreSQL database
+  # Purpose: Isolate database traffic, prevent external access to PostgreSQL
+  # Subnet: 172.25.0.0/16 (allows 65,534 hosts - future expansion)
+  n8n_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+  
+
+
+# ==============================================================================
+# SERVICE DEFINITIONS
+# ==============================================================================
+services:
+
+  # ============================================================================
+  # NGINX PROXY MANAGER - Reverse Proxy & SSL/HTTP Gateway
+  # ============================================================================
+  # Purpose: Centralized reverse proxy for all web services
+  # Access: 
+  #   - Admin UI: http://192.168.1.212:81
+  #   - HTTP Traffic: 127.0.0.1:80 (from Cloudflare Tunnel only)
+  # Authentication: Default admin@example.com / changeme (change on first login)
+  # Volume: nginx-manager-data (config + SQLite DB)
+  # 
+  # Note: SSL/TLS termination handled by Cloudflare Tunnel at edge
+  #       NPM receives HTTP traffic only - no certificate management needed
+  # ============================================================================
+  nginx-manager:
+    container_name: nginx-manager
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    stop_grace_period: 30s
+    
+    # Port Mappings
+    ports:
+      - '127.0.0.1:80:80'   # HTTP from Cloudflare Tunnel (localhost only - security)
+      - '0.0.0.0:81:81'     # Admin dashboard (LAN accessible)
+      # Port 443 not needed - Cloudflare Tunnel handles HTTPS
+    
+    # Environment Configuration
+    environment:
+      # Database: SQLite (lightweight, perfect for small-scale proxy management)
+      DB_SQLITE_FILE: "/data/database.sqlite"
+      
+      # Network: Disable IPv6 to reduce log noise (IPv6 not used)
+      DISABLE_IPV6: 'true'
+      
+      # Security: Clickjacking protection
+      X_FRAME_OPTIONS: "SAMEORIGIN"
+    
+    # Volume Mounts - Centralized storage
+    volumes:
+      # Persistent data: Proxy configurations, SSL certs (empty), SQLite database
+      - ./volumes/nginx-manager-data:/data
+      
+      # Let's Encrypt directory: Required by NPM but unused (Cloudflare handles SSL)
+      - ./volumes/nginx-manager-letsencrypt:/etc/letsencrypt
+      
+      # Time synchronization: Ensure log timestamps match server time
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    
+    # Networks: Connect to shared network for proxying to other services
+    networks:
+      - nginx-network
+    
+    # Health Monitoring
+    healthcheck:
+      test: ["CMD", "/usr/bin/check-health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 2
+    
+    # Resource Limits - Optimized for HTTP-only proxy (no SSL overhead)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'       # Half core sufficient for reverse proxy
+          memory: 256M       # Lightweight SQLite-based NPM
+        reservations:
+          memory: 32M        # Minimum guaranteed memory
+    
+    # Logging - Prevent disk overflow
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"      # Rotate at 10MB
+        max-file: "3"        # Keep 3 rotations (30MB max)
+
+  # ============================================================================
+  # FRIGATE NVR - AI-Powered Video Surveillance System
+  # ============================================================================
+  # Purpose: Real-time video processing with object detection (YOLO + OpenVINO)
+  # Access: https://nvr.sahragty.me (via NPM reverse proxy)
+  # Cameras: 2x TP-Link Tapo C110 (RTSP streams)
+  # Hardware: Intel i5-8300H (4C/8T) + UHD 630 GPU (VAAPI acceleration)
+  # Processing: Hybrid GPU inference + CPU motion detection
+  # Storage: /home/storage/records (recordings directory)
+  # 
+  # Architecture:
+  #   RTSP Cameras → Frigate → Motion Detection (CPU) → Object Detection (GPU) → Clips/Events
+  # 
+  # Performance Strategy:
+  #   - Intel UHD 630 GPU: Hardware-accelerated h264 decode/encode (VAAPI)
+  #   - Intel GPU OpenVINO: AI inference (object detection on GPU)
+  #   - CPU: Motion detection, automation logic
+  #   - 6 CPU cores allocated (cores 0-5), leaving 2 cores for system
+  # ============================================================================
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: always
+    stop_grace_period: 30s
+    
+    # Shared memory for video processing (YOLO model cache, frame buffers)
+    shm_size: "1gb"
+    
+    # Hardware Access - Intel UHD 630 GPU
+    devices:
+      - /dev/dri:/dev/dri    # GPU access for VAAPI hardware acceleration
+    
+    # Capabilities - GPU monitoring and performance
+    cap_add:
+      - CAP_PERFMON          # GPU statistics monitoring
+      - CAP_SYS_ADMIN        # GPU performance monitoring
+    
+    # CPU Affinity - Use cores 0-5, leave 6-7 for system/other services
+    cpuset: "0-5"
+    
+    # Port Mapping
+    ports:
+      - "127.0.0.1:5000:5000"  # Web UI (accessed via NPM proxy)
+    
+    # Environment Variables - GPU & Performance Optimization
+    environment:
+      # Timezone
+      - TZ=Africa/Cairo
+      
+      # Camera Authentication
+      - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD}
+      
+      # Intel GPU Configuration - VAAPI Hardware Acceleration
+      - LIBVA_DRIVER_NAME=iHD                          # Intel iHD driver for UHD 630
+      - LIBVA_DRIVERS_PATH=/usr/lib/x86_64-linux-gnu/dri
+      - INTEL_GPU_TOP=1                                # Enable GPU monitoring
+      
+      # OpenVINO Configuration - GPU-accelerated AI inference
+      - OPENVINO_DEVICE=GPU                            # Force GPU for inference
+      - INTEL_OPENVINO_DIR=/opt/intel/openvino
+      - GST_VAAPI_ALL_DRIVERS=1
+      
+      # CPU Threading - Reduced threads since GPU handles inference
+      - OMP_NUM_THREADS=4                              # OpenMP threads
+      - MKL_NUM_THREADS=4                              # Intel MKL threads
+      - NUMBA_NUM_THREADS=4                            # Numba threads
+      
+      # Hardware Acceleration - Enabled
+      - FRIGATE_DISABLE_HARDWARE_ACCELERATION=false
+    
+    # Volume Mounts
+    volumes:
+      # Configuration: Frigate config.yaml, model cache
+      - ./volumes/frigate-config:/config
+      
+      # Recordings: Video clips and events (user-specified large storage)
+      - /home/storage/records:/media/frigate/recordings
+      
+      # Temporary cache: In-memory tmpfs to reduce SSD wear
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000    # 1GB RAM cache
+    
+    # Networks
+    networks:
+      - nginx-network
+    
+    # Health Monitoring - Extended intervals (video processing is resource-intensive)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/stats"]
+      interval: 600s          # 10-minute checks (reduced overhead)
+      timeout: 5s
+      retries: 2
+      start_period: 120s      # 2-minute startup grace period
+    
+    # Resource Limits - Optimized for GPU + CPU hybrid workload
+    deploy:
+      resources:
+        limits:
+          memory: 6G          # 6GB cap (actual usage ~709MB, 5x headroom for GPU buffers)
+          cpus: "6"           # 6 CPU cores (freed 2 for system)
+        reservations:
+          memory: 3G          # 3GB guaranteed (stable GPU processing)
+          cpus: "4"           # 4 cores reserved
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"       # Larger logs due to verbose video processing
+        max-file: "3"
+
+  # ============================================================================
+  # POSTGRESQL - Database for n8n Workflow Automation
+  # ============================================================================
+  # Purpose: Persistent storage for n8n workflows, credentials, and execution history
+  # Database: n8n (Owner: n8n_admin, Application user: n8n_user)
+  # Port: 5432 (internal only, not exposed to host)
+  # Network: n8n_network (isolated from external access)
+  # 
+  # Architecture:
+  #   n8n-app → PostgreSQL (172.25.0.10) → n8n_db (workflows, executions, credentials)
+  # 
+  # Performance Tuning:
+  #   - shared_buffers: 256MB (RAM cache for frequently accessed data)
+  #   - effective_cache_size: 1GB (query planner hint for available OS cache)
+  #   - max_connections: 200 (sufficient for n8n + monitoring)
+  # ============================================================================
+  postgres:
+    container_name: n8n-postgres
+    image: postgres:16-alpine
+    restart: always
+    stop_grace_period: 30s
+    
+    # Environment Configuration
+    environment:
+      # Superuser credentials (admin operations)
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=n8n
+      
+      # Application user (used by n8n, limited privileges)
+      - POSTGRES_NON_ROOT_USER=${POSTGRES_NON_ROOT_USER}
+      - POSTGRES_NON_ROOT_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
+      
+      # Performance tuning
+      - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
+      - POSTGRES_MAX_CONNECTIONS=200
+      - POSTGRES_SHARED_BUFFERS=256MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=1GB
+      
+      # Timezone
+      - TZ=Africa/Cairo
+      - PGTZ=Africa/Cairo
+    
+    # Volume Mounts
+    volumes:
+      # Database storage: Persistent PostgreSQL data directory
+      - ./volumes/n8n-postgres:/var/lib/postgresql/data
+      
+      # Initialization script: Creates application user and grants permissions
+      - ./scripts/n8n-init-data.sh:/docker-entrypoint-initdb.d/init-data.sh:ro
+    
+    # Networks - Isolated network + exposed to n8n only
+    networks:
+      n8n_network:
+        ipv4_address: 172.25.0.10    # Static IP for reliable connection from n8n
+    
+    # Internal port (not exposed to host - security)
+    expose:
+      - "5432"
+    
+    # Health Monitoring - Critical for n8n startup dependency
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U n8n_admin -d n8n']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    # Resource Limits - Optimized for n8n workload (actual usage ~22MB)
+    deploy:
+      resources:
+        limits:
+          memory: 512M        # 512MB cap (23x current usage, ample headroom)
+          cpus: "1.5"         # 1.5 cores for database operations
+        reservations:
+          memory: 256M        # 256MB guaranteed
+          cpus: "0.5"         # Half core reserved
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================================================
+  # N8N - Workflow Automation Platform
+  # ============================================================================
+  # Purpose: Visual workflow automation (think: self-hosted Zapier/Make)
+  # Access: https://n8n.sahragty.me (via NPM reverse proxy)
+  # Authentication: HTTP Basic Auth via NPM (username: sahragty, password in NPM)
+  # Database: PostgreSQL (n8n-postgres container)
+  # Webhooks: https://n8n.sahragty.me/webhook/* (auth bypass for external triggers)
+  # 
+  # Features:
+  #   - 400+ integrations (HTTP, databases, APIs, cloud services)
+  #   - Visual workflow editor
+  #   - Execution history & debugging
+  #   - Cron scheduling
+  #   - Custom code nodes (JavaScript/Python)
+  # 
+  # Architecture:
+  #   External API/Webhook → NPM → n8n → PostgreSQL
+  #                                   ↓
+  #                          Target Services (email, Slack, etc.)
+  # ============================================================================
+  n8n:
+    container_name: n8n-app
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    stop_grace_period: 30s
+    user: "1000:1000"        # Run as non-root for security
+    
+    # Environment Configuration - Comprehensive n8n setup
+    environment:
+      # ========================================================================
+      # DATABASE CONNECTION
+      # ========================================================================
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${DB_POSTGRESDB_USER}
+      - DB_POSTGRESDB_PASSWORD=${DB_POSTGRESDB_PASSWORD}
+      - DB_POSTGRESDB_SCHEMA=public
+      - N8N_RUNNERS_TASK_TIMEOUT=3600
+      
+      # ========================================================================
+      # SERVER & ACCESS CONFIGURATION
+      # ========================================================================
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - N8N_LISTEN_ADDRESS=0.0.0.0
+      - WEBHOOK_URL=https://n8n.sahragty.me/webhook
+      - N8N_EDITOR_BASE_URL=https://n8n.sahragty.me
+      
+      # ========================================================================
+      # AUTHENTICATION - Disabled (NPM handles auth)
+      # ========================================================================
+      # n8n's built-in auth completely disabled because NPM provides HTTP Basic Auth
+      # This prevents double-authentication and owner setup screens
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_USER_MANAGEMENT_DISABLED=true
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_DISABLE_UI=false
+      - N8N_SKIP_OWNER_SETUP=true        # Skip owner setup on startup
+      - N8N_AUTH_EXCLUDE_ENDPOINTS=/health,/webhook  # Allow webhooks without auth
+      
+      # ========================================================================
+      # SECURITY
+      # ========================================================================
+      - N8N_SECURE_COOKIE=true           # Cloudflare handles HTTPS at edge; n8n must set Secure cookie flag
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      
+      # ========================================================================
+      # EXECUTION CONFIGURATION
+      # ========================================================================
+      - EXECUTIONS_MODE=regular           # Execution mode
+      - EXECUTIONS_TIMEOUT=3600           # 1 hour timeout per workflow
+      - EXECUTIONS_TIMEOUT_MAX=7200       # 2 hour absolute max
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_RUNNERS_MODE=internal
+      
+      # ========================================================================
+      # DATA RETENTION - Auto-cleanup to prevent database bloat
+      # ========================================================================
+      - EXECUTIONS_DATA_SAVE_ON_ERROR=all
+      - EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
+      - EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
+      - EXECUTIONS_DATA_PRUNE=true        # Enable automatic cleanup
+      - EXECUTIONS_DATA_MAX_AGE=336       # Keep 14 days of execution history
+      
+      # ========================================================================
+      # LOGGING
+      # ========================================================================
+      - N8N_LOG_LEVEL=info
+      - N8N_LOG_OUTPUT=console
+      
+      # ========================================================================
+      # TIMEZONE
+      # ========================================================================
+      - TZ=Africa/Cairo
+      - GENERIC_TIMEZONE=UTC
+      
+      # ========================================================================
+      # FEATURES
+      # ========================================================================
+      - N8N_HIRING_BANNER_ENABLED=false
+      - N8N_VERSION_NOTIFICATIONS_ENABLED=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_TEMPLATES_ENABLED=true
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+    
+    # Port Mapping
+    ports:
+      - "127.0.0.1:8000:5678"    # Web UI (accessed via NPM at https://n8n.sahragty.me)
+    
+    # Volume Mounts
+    volumes:
+      # n8n data: Workflows, credentials, custom nodes, binary data
+      - ./volumes/n8n-data:/home/node/.n8n
+    
+    # Networks - Both internal (database) and external (proxy)
+    networks:
+      n8n_network:
+        ipv4_address: 172.25.0.20    # Static IP for database connection
+      nginx-network:                 # For NPM reverse proxy access
+    
+    # Dependencies - Wait for healthy PostgreSQL before starting
+    depends_on:
+      postgres:
+        condition: service_healthy
+    
+    # Health Monitoring
+    healthcheck:
+      test: ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1']
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 120s      # 2-minute startup (database initialization can take time)
+    
+    # Resource Limits - Optimized for workflow execution (actual usage ~212MB)
+    deploy:
+      resources:
+        limits:
+          memory: 512M        # 512MB cap (2.4x current usage)
+          cpus: "2"           # 2 cores for workflow processing
+        reservations:
+          memory: 256M        # 256MB guaranteed
+          cpus: "1"           # 1 core reserved
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
+
+
+  # ============================================================================
+  # PORTFOLIO - Next.js SSR Portfolio Website
+  # ============================================================================
+  # Purpose: Personal portfolio website with server-side rendering
+  # Access: https://sahragty.com (via NPM reverse proxy)
+  # Framework: Next.js 16+ with App Router, React 19, Framer Motion
+  # Build: Multi-stage Docker build with standalone output
+  # Runtime: Non-root user (nextjs:nodejs), minimal Alpine image
+  #
+  # Architecture:
+  #   Cloudflare Tunnel → NPM (port 80) → portfolio-app (port 3000)
+  # ============================================================================
+  portfolio-app:
+    container_name: portfolio-app
+    build:
+      context: ./portfolio
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 15s
+
+    # Environment Configuration
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      - NEXT_TELEMETRY_DISABLED=1
+
+    # No ports exposed to host — NPM accesses via nginx-network
+    # Uncomment below for local testing without NPM:
+    # ports:
+    #   - '127.0.0.1:3000:3000'
+
+    # Networks: Shared with NPM for reverse proxy routing
+    networks:
+      - nginx-network
+
+    # Health Monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+    # Resource Limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 64M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Security
+    security_opt:
+      - no-new-privileges:true
+
+
+  # ============================================================================
+  # TAILSCALE - Exit Node VPN Gateway
+  # ============================================================================
+  # Purpose: Secure remote access tunnel to homelab + Exit Node for external traffic
+  # Architecture: Routes your remote traffic → Tailscale network → Deeper VPN → internet
+  # Host Networking: Uses host kernel directly (avoids Docker NAT double-NAT issues)
+  # Exit Node: Advertises all traffic routes (0.0.0.0/0) for VPN bypass capability
+  #
+  # Key Design Decisions:
+  #   - network_mode: "host" → Tailscale connects to host network (optimal for VPN)
+  #   - TS_USERSPACE=false → Uses kernel routing (faster than userspace, max perf)
+  #   - Kernel forwarding (sysctl): Enabled on host (see Step 1)
+  #   - Reusable auth key: Set in .env (gitignored, survives container restarts)
+  #   - Data persistence: /var/lib/tailscale stored in ./volumes/tailscale-data
+  #
+  # Traffic Flow:
+  #   Tailscale Client (remote) → Tailscale Network → sahragty-network Exit Node
+  #                                                       ↓
+  #                                              Deeper VPN Hardware
+  #                                                       ↓
+  #                                         Bazaarvoice Servers / Internet
+  #
+  # Approval Required: You must manually approve this Exit Node in Tailscale console.
+  #                    See Step 5 in user request for approval instructions.
+  # ============================================================================
+  tailscale:
+    container_name: tailscale-exit-node
+    image: tailscale/tailscale:stable
+    hostname: sahragty-network  # Name in Tailscale Admin Console dashboard
+    restart: unless-stopped
+    stop_grace_period: 30s
+    
+    # CRITICAL: Host networking mode
+    # This bypasses Docker's internal networking and connects Tailscale directly
+    # to the host kernel. Required for proper exit node routing + Deeper VPN integration.
+    network_mode: "host"
+    
+    # Capabilities: Network admin + raw socket access (required for VPN exit node)
+    cap_add:
+      - NET_ADMIN      # Allow route/firewall manipulation
+      - NET_RAW        # Allow raw socket access for packet forwarding
+    
+    # Volume Mounts
+    volumes:
+      # Persistent state: Auth credentials, route cache, VPN config
+      # Survives container restart/upgrade without forcing re-authentication
+      - ./volumes/tailscale-data:/var/lib/tailscale
+      
+      # Logs: Comprehensive audit, traffic, and access logs
+      # Subdirectories: container-logs (Docker logs), audit-logs (device connections), traffic-stats (bandwidth/metrics)
+      - ./volumes/tailscale-logs:/var/log/tailscale
+      
+      # TUN device: Required for VPN packet injection/extraction
+      # Maps host's /dev/net/tun into container for VPN functionality
+      - /dev/net/tun:/dev/net/tun
+      
+      # Time synchronization: Ensure log timestamps match server time
+      # Read-only mounts from host system (no new directories created)
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    
+    # Environment Configuration - VPN Exit Node Setup
+    environment:
+      # Auth Token: Loaded from .env (gitignored, never committed)
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      
+      # Exit Node Advertisement: Tells Tailscale this node serves all traffic (0.0.0.0/0)
+      # This enables remote clients to optionally route through this node for internet access
+      - TS_EXTRA_ARGS=--advertise-exit-node
+      
+      # State Directory: Must match volume mount target
+      - TS_STATE_DIR=/var/lib/tailscale
+      
+      # Userspace vs Kernel: false = maximum performance (uses host kernel routing)
+      # Kernel routing is faster than userspace and properly integrates with Deeper VPN
+      - TS_USERSPACE=false
+    
+    # Health Monitoring - Verify exit node is responsive
+    # Extended startup_period to allow network/DNS initialization after reboot
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s   # Wait 60s for network to settle after boot
+    
+    # Resource Limits - Minimal overhead (VPN routing is lightweight)
+    deploy:
+      resources:
+        limits:
+          memory: 128M       # Exit node uses very little memory (~20-30MB)
+          cpus: "0.5"        # One-tenth core sufficient for routing
+        reservations:
+          memory: 32M        # Minimum guaranteed
+          cpus: "0.1"        # Minimal reservation
+    
+    # Logging - Comprehensive exit node activity tracking
+    # Logs include: connections, route changes, traffic patterns, device join/leave events
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"       # Larger logs for detailed tracking
+        max-file: "7"         # Keep 7 rotations = ~350MB of history
+        labels: "service=tailscale,role=exit-node"
+        tag: "{{.Name}}/{{.FullID}}"
+    
+    # Security: Prevent privilege escalation, drop unneeded caps after startup
+    security_opt:
+      - no-new-privileges:true
+
+
+
+# ==============================================================================
+# VOLUME NOTES
+# ==============================================================================
+# All volumes use host bind mounts under ./volumes/ for easy access and backup
+# 
+# Volume Structure:
+#   /home/homeLab/volumes/
+#   ├── nginx-manager-data/           # NPM config + SQLite database
+#   ├── nginx-manager-letsencrypt/    # Empty (required by NPM)
+#   ├── frigate-config/                # Frigate config.yaml + model cache
+#   ├── n8n-postgres/                  # PostgreSQL data directory
+#   ├── n8n-data/                      # n8n workflows + credentials
+#   ├── tailscale-data/                # Tailscale auth credentials + VPN config
+#   └── tailscale-logs/                # Tailscale exit node audit & traffic logs
+#       ├── audit-logs/                # Device connections, routing, health status
+#       ├── traffic-stats/             # Network bandwidth and statistics
+#       └── container-logs/            # Docker container output logs
+#
+# Script Structure:
+#   /home/homeLab/scripts/
+#   └── n8n-init-data.sh               # Database initialization script
+# 
+# Recordings (Frigate):
+#   Stored separately at /home/storage/records (large storage volume)
+# 
+# Portfolio Website:
+#   Now runs as standalone Next.js container (portfolio-app)
+#   No longer served as static files from NPM
+# ==============================================================================
+
+# ==============================================================================
+# NETWORK NOTES
+# ==============================================================================
+# nginx-network:
+#   - Shared by nginx-manager, frigate, and n8n
+#   - Enables reverse proxy routing to backend services
+#   - Service discovery by container name
+# 
+# n8n_network (172.25.0.0/16):
+#   - Dedicated for n8n ↔ PostgreSQL communication
+#   - Isolated from other services (database security)
+#   - Static IPs: postgres (172.25.0.10), n8n (172.25.0.20)
+#   - Not exposed to host network
+# ==============================================================================
+
+# ==============================================================================
+# RESOURCE SUMMARY
+# ==============================================================================
+# Total Resource Allocation:
+#   CPU Limits: 0.5 + 6 + 1.5 + 2 + 0.5 = 10.5 cores
+#   Memory Limits: 256M + 6G + 512M + 512M + 128M = 7.375GB
+# 
+# Actual Usage (Current):
+#   nginx-manager: ~68MB / 256MB (26%)
+#   frigate: ~709MB / 6GB (12%)
+#   postgres: ~22MB / 512MB (4%)
+#   n8n: ~212MB / 512MB (41%)
+#   tailscale: ~20-21MB / 128MB (16-17%) [exit node + logging]
+#   Total: ~1.04GB actual / 7.375GB allocated
+# 
+# Resource Strategy:
+#   - Limits set with 2x-30x headroom for burst activity
+#   - Reservations guarantee minimum resources under contention
+#   - Frigate gets most resources (video processing heavy)
+#   - Database and n8n share moderate allocation
+#   - NPM is lightweight (reverse proxy only, no SSL)
+#   - Tailscale is minimal overhead (VPN routing + audit logging, ~20MB)
+# ==============================================================================
+
+# ==============================================================================
+# MAINTENANCE COMMANDS
+# ==============================================================================
+# 
+# Start all services:
+#   docker compose up -d
+# 
+# Stop all services:
+#   docker compose down
+# 
+# Restart specific service:
+#   docker compose restart nginx-manager
+#   docker compose restart frigate
+#   docker compose restart n8n
+#   docker compose restart openclaw-gateway
+# 
+# View logs:
+#   docker compose logs -f                    # All services
+#   docker compose logs -f nginx-manager      # Specific service
+#   docker compose logs -f --tail=100 n8n     # Last 100 lines
+# 
+# Check status:
+#   docker compose ps
+#   docker stats                              # Resource usage
+# 
+# Update images:
+#   docker compose pull
+#   docker compose up -d
+# 
+# OpenClaw CLI:
+#   docker compose run --rm openclaw-cli dashboard --no-open
+#   docker compose run --rm openclaw-cli channels login
+# 
+# Backup:
+#   tar -czf homelab-backup-$(date +%Y%m%d).tar.gz volumes/
+# 
+# ==============================================================================

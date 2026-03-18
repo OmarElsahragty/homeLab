@@ -1,0 +1,28 @@
+.toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $toggle-button-size;
+    height: $toggle-button-size;
+    color: var(--text-dim);
+    border-radius: var(--radius);
+    transition:
+        color var(--transition-fast),
+        background var(--transition-fast);
+
+    &:hover {
+        color: var(--text-primary);
+        background: $gray-overlay-light;
+    }
+
+    svg {
+        display: block;
+        flex-shrink: 0;
+    }
+}
+
+.placeholder {
+    display: inline-block;
+    width: $toggle-button-size;
+    height: $toggle-button-size;
+}

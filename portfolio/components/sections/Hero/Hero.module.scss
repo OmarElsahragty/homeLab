@@ -1,0 +1,263 @@
+.hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.bg {
+    position: absolute;
+    inset: 0;
+    background: var(--hero-overlay-bg);
+}
+
+/* Animated grid overlay */
+.grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgb(var(--hero-grid-line-rgb) / var(--hero-grid-line-alpha)) 1px,
+        transparent 1px),
+        linear-gradient(90deg,
+        rgb(var(--hero-grid-line-rgb) / var(--hero-grid-line-alpha)) 1px,
+        transparent 1px);
+    background-size: $hero-grid-size $hero-grid-size;
+    opacity: var(--hero-grid-opacity);
+    transition: transform 0.3s ease-out;
+}
+
+/* Content wrapper */
+.content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    @include section-inner;
+
+    padding-top: $space-24;
+    padding-bottom: $space-16;
+
+    @include mobile {
+        padding-inline: $space-5;
+        padding-top: $space-20;
+        padding-bottom: $space-10;
+    }
+}
+
+.columns {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $space-12;
+    align-items: center;
+
+    @include lg {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Left column: text */
+.textCol {
+    display: flex;
+    flex-direction: column;
+    gap: $space-6;
+}
+
+.headline {
+    font-size: $hero-headline-clamp;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-primary);
+}
+
+.subtext {
+    max-width: $size-32rem;
+    font-family: var(--font-mono);
+    font-size: $hero-subtext-clamp;
+    line-height: 1.7;
+    color: var(--text-dim);
+}
+
+.highlight {
+    color: var(--accent-orange);
+}
+
+.role {
+    font-size: $hero-role-clamp;
+    color: var(--text-dim);
+
+    .accentYellow {
+        font-weight: 600;
+        color: var(--accent-yellow);
+    }
+
+    .accentWhite {
+        color: var(--text-primary);
+    }
+}
+
+/* Status badge */
+.status {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+}
+
+.statusDot {
+    position: relative;
+    width: $space-3;
+    height: $space-3;
+}
+
+.statusPing {
+    position: absolute;
+    inset: 0;
+    background: var(--accent-green);
+    border-radius: 50%;
+    opacity: 0.75;
+    animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.statusSolid {
+    position: relative;
+    display: inline-flex;
+    width: $space-3;
+    height: $space-3;
+    background: var(--accent-green);
+    border-radius: 50%;
+}
+
+.statusText {
+    font-family: var(--font-mono);
+    font-size: $text-xs;
+    color: var(--accent-green);
+}
+
+/* CTA row */
+.cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-4;
+    margin-top: $space-2;
+}
+
+/* Right column: profile picture */
+.profileCol {
+    display: flex;
+    flex-direction: column;
+    gap: $space-4;
+    align-items: center;
+    justify-content: center;
+}
+
+.profileWrapper {
+    position: relative;
+    width: $hero-profile-size-sm;
+    height: $hero-profile-size-sm;
+
+    @include xs-down {
+        width: $hero-profile-size-xs;
+        height: $hero-profile-size-xs;
+    }
+
+    @include md {
+        width: $hero-profile-size-md;
+        height: $hero-profile-size-md;
+    }
+}
+
+.profileGlow {
+    position: absolute;
+    inset: -$space-6;
+    background: radial-gradient(circle, rgb(var(--hero-glow-rgb) / 0.13) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: pulse 3s ease-in-out infinite;
+}
+
+.profileImageContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: $border-width-md solid transparent;
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 $border-width-md var(--accent-blue),
+        0 0 $hero-profile-glow-sm rgb(var(--hero-glow-rgb) / 0.24),
+        0 0 $hero-profile-glow-lg rgb(var(--hero-glow-rgb) / 0.09);
+}
+
+.profileImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profileRing {
+    position: absolute;
+    inset: -$hero-profile-ring-offset;
+    border: $border-width-sm dashed var(--accent-purple);
+    border-radius: 50%;
+    opacity: 0.35;
+    animation: spin 20s linear infinite;
+}
+
+.duckBadge {
+    position: absolute;
+    right: $space-2;
+    bottom: $space-2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: $space-12;
+    height: $space-12;
+    padding: 0;
+    font-size: $duck-badge-font-size;
+    cursor: pointer;
+    background: var(--bg-secondary);
+    border: $border-width-sm solid var(--border-medium);
+    border-radius: 50%;
+    transition: transform var(--transition-fast);
+    animation: bounce 2s infinite;
+
+    &:hover {
+        transform: scale(1.12);
+        animation-play-state: paused;
+    }
+}
+
+.duckQuack {
+    animation: quack 0.6s ease-in-out;
+}
+
+.duckCaption {
+    font-family: var(--font-mono);
+    font-size: $text-sm;
+    color: var(--accent-yellow);
+    opacity: 0.85;
+}
+
+/* Scroll indicator */
+.scrollIndicator {
+    position: absolute;
+    bottom: $space-8;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.scrollPill {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: $space-6;
+    height: $space-10;
+    padding-top: $space-1-5;
+    border: $border-width-sm solid var(--border-medium);
+    border-radius: $radius-full;
+}
+
+.scrollDot {
+    width: $space-1-5;
+    height: $space-1-5;
+    background: var(--accent-yellow);
+    border-radius: 50%;
+}
