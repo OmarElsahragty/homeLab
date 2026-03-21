@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e;
 
+# Pre-create pgvector extension as superuser (required for EGX semantic similarity)
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+	CREATE EXTENSION IF NOT EXISTS vector;
+EOSQL
 
 if [ -n "${POSTGRES_NON_ROOT_USER:-}" ] && [ -n "${POSTGRES_NON_ROOT_PASSWORD:-}" ]; then
 	psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL

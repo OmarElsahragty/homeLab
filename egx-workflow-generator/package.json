@@ -1,0 +1,20 @@
+{
+    "name": "egx-workflow-generator",
+    "version": "1.0.0",
+    "description": "n8n workflow generators for EGX Deep Analyst and Auditor",
+    "type": "commonjs",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "keywords": [
+        "n8n",
+        "egx",
+        "workflow",
+        "generator"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "dotenv": "^16.4.5"
+    }
+}

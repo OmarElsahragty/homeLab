@@ -48,14 +48,16 @@ desktop.ini
 tmp/
 temp/
 *.tmp
-
+# ── Local Development & Copilot Memory ────────────────────────────────────────
+local/
+.copilot-memory/
 # ── TypeScript Build Info ─────────────────────────────────────────────────────
 *.tsbuildinfo
 
 # ── Package Lock (subprojects — root keeps theirs) ────────────────────────────
 # Keep root lock files, ignore nested ones if preferred
-# ── Workflows ─────────────────────────────────────────────────────────────────
-workflows/
+# ── EGX Workflow Generator Output ──────────────────────────────────────
+egx-workflow-generator/output/
 
 # ── Security Docs ─────────────────────────────────────────────────────────────
 security.md
