@@ -30,7 +30,7 @@ const notoNaskhArabic = Noto_Naskh_Arabic({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#87CEEB',
+  themeColor: '#000000',
 };
 
 export const metadata: Metadata = {
@@ -112,6 +112,7 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 },
   },
   category: 'technology',
+  manifest: '/manifest.json',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://sahragty.me'),
 };
 
@@ -232,6 +233,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main>{children}</main>
           <FooterSection />
         </LangProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ('serviceWorker' in navigator) { window.addEventListener('load', function() { navigator.serviceWorker.register('/sw.js'); }); }`,
+          }}
+        />
       </body>
     </html>
   );
