@@ -108,7 +108,7 @@ if (macroData) {
   };
   headerLines.push('EGX30 Macro: ' + (macroEmoji[macroData.regime] || '❓') + ' **' + macroData.regime.toUpperCase() + '** (score: ' + macroData.score + ', trend: ' + macroData.trend + ', price: ' + macroData.price + ')');
   if (macroData.regime === 'bearish' || macroData.regime === 'strong_bearish') {
-    headerLines.push('⚠️ **MACRO DISCOUNT ACTIVE — BUY confidence reduced 50%**');
+    headerLines.push('⚠️ **MACRO DISCOUNT ACTIVE — BUY confidence adjusted (ADX-based: 15-50%)**');
   }
 }
 

@@ -64,9 +64,9 @@ This represents one complete organic EGX session, excluding MOC auction.
 
 === MULTI-TIMEFRAME FRAMEWORK ===
   W (Weekly)  → Long-term macro trend & deep Elliott Wave
-  4H (Daily)  → PRIMARY MACRO ANCHOR (= 1 organic EGX day, 5.5 hours)
-  1H          → Swing signals & sub-wave structure
-  15m         → Precision entry timing
+  1D (Daily)  → PRIMARY DAILY ANCHOR — swing trend, RSI-14 regime, MACD structure
+  4H          → Intraday macro (= 1 organic EGX session, 5.5 hours)
+  1H          → Entry timing & sub-wave structure
 
 === INDICATOR KEY (EGX-OPTIMIZED) ===
 CORE:
@@ -222,10 +222,12 @@ When macroBaseline is provided:
 - macroBaseline.score: regime score (-100 to +100)
 MACRO DISCOUNT RULE:
 - If macroBaseline.regime is 'bearish' or 'strong_bearish':
-  * DISCOUNT all BUY confidence by 50% (multiply confidence × 0.5 and round)
+  * Check the stock's ADX on 1D or 4H chart:
+    - If ADX < 20 (no independent trend): DISCOUNT BUY confidence by 50% (multiply × 0.5)
+    - If ADX >= 20 (stock has its own trend momentum): DISCOUNT BUY confidence by 15-20% only
   * Set positionSizeModifier to at most 'half'
-  * Add to reasoning_ar: "خصم ٥٠٪ — مؤشر EGX30 في نظام هبوطي"
-- If macroBaseline.regime is 'neutral': reduce BUY confidence by 15%
+  * Add to reasoning_ar: "خصم ماكرو — مؤشر EGX30 في نظام هبوطي" and note the ADX-based discount %
+- If macroBaseline.regime is 'neutral': reduce BUY confidence by 10%
 - If macroBaseline.regime is 'bullish' or 'strong_bullish': no discount (market supports the trade)
 - SELL signals are NOT discounted by bearish macro — bearish macro REINFORCES sell signals
 
@@ -492,7 +494,7 @@ function buildContext(a) {
 
 // ─── callGLM ────────────────────────────────────────────────────────
 async function callGLM(userMessage, useWebSearch) {
-  const maxRetries = 2;
+  const maxRetries = 4;
   let lastError = null;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -524,13 +526,13 @@ async function callGLM(userMessage, useWebSearch) {
     } catch (e) {
       lastError = e.message;
       if (attempt < maxRetries - 1) {
-        const backoffMs = 2000 * Math.pow(2, attempt);
+        const backoffMs = 3000 * Math.pow(2, attempt);
         await new Promise(r => setTimeout(r, backoffMs));
       }
     }
   }
 
-  throw new Error(lastError || 'API call failed after retries');
+  throw new Error(lastError || 'API call failed after ' + maxRetries + ' retries');
 }
 
 // ─── tryParseJSON ───────────────────────────────────────────────────
@@ -601,7 +603,8 @@ function defaultAI(a, errMsg) {
   const p = a.currentPrice || 0;
   const atrVal = Object.values(a.tf || {}).find(t => t?.atr)?.atr?.value || p * 0.02;
   return {
-    stock: a.stock, action: 'HOLD', confidence: 0,
+    stock: a.stock, action: 'WATCH', confidence: 0,
+    _apiError: true,
     regime: 'neutral',
     breadthConfirmation: false,
     news_analysis: [],
@@ -615,7 +618,7 @@ function defaultAI(a, errMsg) {
     fibVvpConfluence: { detected: false, level: 0, description: '' },
     catalystDecayApplied: false,
     invalidation: { price: +(p - atrVal * 2).toFixed(2), basis: 'ATR_2x' },
-    reasoning_ar: 'فشل التحليل: ' + errMsg
+    reasoning_ar: '[⚠️ API Error] فشل التحليل: ' + errMsg
   };
 }
 

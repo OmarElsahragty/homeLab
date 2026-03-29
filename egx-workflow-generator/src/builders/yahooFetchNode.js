@@ -7,7 +7,7 @@
  *      - Timezone: Intl.DateTimeFormat (no hardcoded offset)
  *      - filterMOC: 9:30 open ≤ candle < 15:00
  *      - healGrid: 9:00–15:00 window
- *      - Fetch Matrix: 30m→60d, 1H→60d, 1W→5y
+ *      - Fetch Matrix: 1D→1y, 1H→60d, 1W→5y
  *
  * @module yahooFetchNode
  */
@@ -29,8 +29,8 @@ const STOCK_CONFIG_CODE = `
 /*
  * STOCK CONFIG — EGX Deep Analyst
  * Yahoo EGX ticker format: TICKER.CA
- * Fetch Matrix: 30m→60d, 1H→60d, 1W→5y. 4H synthesized from 1H.
- * 30m: 11 equal candles per 5.5h session — eliminates unequal bin distortion.
+ * Fetch Matrix: 1D→1y, 1H→60d, 1W→5y. 4H synthesized from 1H.
+ * 30m: 11 equal candles per 5.5h session — eliminates unequal bin distortion.\n * Note: 30m candles are no longer in FETCH_MATRIX but retained for reference.
  */
 const STOCKS = [
   { ticker: 'SKPC',  name: 'Sidi Kerir Petrochemicals' },
@@ -42,8 +42,8 @@ const STOCKS = [
 ];
 
 const FETCH_MATRIX = [
-  { id: '30m',  interval: '30m',  range: '60d',  label: '30-Min Entry' },
-  { id: '1H',   interval: '60m',  range: '60d',  label: '1-Hour Swing' },
+  { id: '1D',   interval: '1d',   range: '1y',   label: 'Daily Swing' },
+  { id: '1H',   interval: '60m',  range: '60d',  label: '1-Hour Entry' },
   { id: '1W',   interval: '1wk',  range: '5y',   label: 'Weekly Deep' }
 ];
 
@@ -63,7 +63,7 @@ const FETCH_YAHOO_CODE = `
  * Timezone: Intl.DateTimeFormat (auto-DST, no hardcoded offset)
  * filterMOC: 9:30 open ≤ candle < 15:00
  * healGrid: ≥ 9 && < 15
- * FETCH_MATRIX: 30m (11 equal candles/session), 1H, 1W
+ * FETCH_MATRIX: 1D, 1H, 1W
  */
 if ($input.all()[0]?.json?._skip) return $input.all();
 
@@ -250,8 +250,8 @@ for (const stock of stocks) {
   let hasAnyData = false;
 
   for (const tf of fetchMatrix) {
-    const isIntraday = (tf.id === '15m' || tf.id === '1H');
-    const intervalSec = tf.id === '15m' ? 900 : tf.id === '1H' ? 3600 : 0;
+    const isIntraday = (tf.id === '30m' || tf.id === '1H');
+    const intervalSec = tf.id === '30m' ? 1800 : tf.id === '1H' ? 3600 : 0;
 
     const result = await fetchYahoo(stock.ticker, tf.interval, tf.range, 3, stock.isIndex);
     fetchLog.push({ stock: stock.ticker, tf: tf.id, ok: result.ok, err: result.err || null });

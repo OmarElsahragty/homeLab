@@ -42,12 +42,12 @@ const SESSION = {
 const CANDLE_30M_COUNT = 11;
 
 /** Timeframe hierarchy and weights for confluence scoring */
-const TF_HIERARCHY = ['1W', '4H', '1H', '30m'];
-const TF_WEIGHTS = { '1W': 2, '4H': 5, '1H': 3, '30m': 2 };
-const TF_SHORT = { '1W': 'W', '4H': '4H', '1H': '1H', '30m': '30m' };
+const TF_HIERARCHY = ['1W', '1D', '4H', '1H'];
+const TF_WEIGHTS = { '1W': 2, '1D': 5, '4H': 3, '1H': 1 };
+const TF_SHORT = { '1W': 'W', '1D': 'D', '4H': '4H', '1H': '1H' };
 
 /** Zigzag thresholds per timeframe */
-const ZZ_THRESHOLDS = { '1W': 0.06, '4H': 0.04, '1H': 0.025, '30m': 0.015 };
+const ZZ_THRESHOLDS = { '1W': 0.06, '1D': 0.035, '4H': 0.04, '1H': 0.025 };
 
 /** Yahoo Finance base URL */
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';

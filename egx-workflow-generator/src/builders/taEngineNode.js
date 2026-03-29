@@ -29,9 +29,9 @@ const TA_ENGINE_CODE = `
 if ($input.all()[0]?.json?._skip) return $input.all();
 
 // ═══ CONSTANTS ═══
-const TF_HIERARCHY = ['1W', '4H', '1H', '15m'];
-const TF_WEIGHTS   = { '1W': 2, '4H': 5, '1H': 3, '15m': 2 };
-const ZZ_THRESHOLDS = { '1W': 0.06, '4H': 0.04, '1H': 0.025, '15m': 0.015 };
+const TF_HIERARCHY = ['1W', '1D', '4H', '1H'];
+const TF_WEIGHTS   = { '1W': 2, '1D': 5, '4H': 3, '1H': 1 };
+const ZZ_THRESHOLDS = { '1W': 0.06, '1D': 0.035, '4H': 0.04, '1H': 0.025 };
 
 // ═══ CORE INDICATORS ═══
 
@@ -763,9 +763,24 @@ function calcRegimeScore(taResults) {
 // ═══ COMPUTE ONE TIMEFRAME ═══
 
 function computeTF(ohlcv, tfId) {
-  const { opens, highs, lows, closes, volumes } = ohlcv;
+  const { opens, highs, lows, closes, volumes: rawVolumes } = ohlcv;
   if (closes.length < 20) return null;
   const n = closes.length;
+
+  // Zero-volume guard: replace trailing zero with short-term SMA fallback
+  const volumes = rawVolumes.slice();
+  if (volumes[n - 1] === 0 || volumes[n - 1] == null) {
+    const lookback5 = volumes.slice(Math.max(0, n - 6), n - 1).filter(v => v > 0);
+    if (lookback5.length > 0) {
+      volumes[n - 1] = Math.round(lookback5.reduce((a, b) => a + b, 0) / lookback5.length);
+    } else {
+      const lookback20 = volumes.slice(Math.max(0, n - 21), n - 1).filter(v => v > 0);
+      volumes[n - 1] = lookback20.length > 0
+        ? Math.round(lookback20.reduce((a, b) => a + b, 0) / lookback20.length)
+        : 1;
+    }
+  }
+
   let price = closes[n - 1];
   if (price == null || price <= 0) {
     for (let i = n - 2; i >= 0; i--) { if (closes[i] != null && closes[i] > 0) { price = closes[i]; break; } }
@@ -884,8 +899,8 @@ function waveAlignment(tfs) {
   const directions = entries.map(([_, w]) => w.direction);
   const allUp = directions.every(d => d === 'up');
   const allDown = directions.every(d => d === 'down');
-  const higherTF = waves['1W'] || waves['4H'];
-  const lowerTF = waves['1H'] || waves['30m'];
+  const higherTF = waves['1W'] || waves['1D'];
+  const lowerTF = waves['4H'] || waves['1H'];
   let signal = 'neutral';
   let detail = entries.map(([tf, w]) => tf + ':' + w.label).join(' | ');
   if (allUp) {
@@ -915,20 +930,20 @@ function confluence(tfs, waveAlign) {
     if (data.emaAlign === 'bullish') bull += w * 0.10;
     else if (data.emaAlign === 'bearish') bear += w * 0.10;
 
-    // RSI-14 trend (5%)
-    if (data.rsi?.value > 55) bull += w * 0.05;
-    else if (data.rsi?.value < 45) bear += w * 0.05;
+    // RSI-14 trend (8%)
+    if (data.rsi?.value > 55) bull += w * 0.08;
+    else if (data.rsi?.value < 45) bear += w * 0.08;
 
-    // RSI-3 extreme signals (8%)
-    if (data.rsiShort?.signal === 'oversold') bull += w * 0.08;
-    else if (data.rsiShort?.signal === 'overbought') bear += w * 0.08;
+    // RSI-3 extreme signals (3%)
+    if (data.rsiShort?.signal === 'oversold') bull += w * 0.03;
+    else if (data.rsiShort?.signal === 'overbought') bear += w * 0.03;
 
-    // MACD EGX (8%)
+    // MACD EGX (10%)
     if (data.macdEgx) {
-      if (data.macdEgx.histogram > 0 && data.macdEgx.histSlope > 0) bull += w * 0.05;
-      else if (data.macdEgx.histogram < 0 && data.macdEgx.histSlope < 0) bear += w * 0.05;
-      if (data.macdEgx.crossover === 'bullish') bull += w * 0.03;
-      else if (data.macdEgx.crossover === 'bearish') bear += w * 0.03;
+      if (data.macdEgx.histogram > 0 && data.macdEgx.histSlope > 0) bull += w * 0.06;
+      else if (data.macdEgx.histogram < 0 && data.macdEgx.histSlope < 0) bear += w * 0.06;
+      if (data.macdEgx.crossover === 'bullish') bull += w * 0.04;
+      else if (data.macdEgx.crossover === 'bearish') bear += w * 0.04;
     }
 
     // Ichimoku (7%)
@@ -1064,7 +1079,7 @@ for (const item of allItems) {
 
   // Capture EGX30 macro baseline
   if (d.isIndex && d.stock === '^CASE30') {
-    const anchor = taResults['4H'] || taResults['1H'];
+    const anchor = taResults['1D'] || taResults['4H'] || taResults['1H'];
     macroBaseline = {
       regime: regimeFilter.regime,
       score: regimeFilter.score,
