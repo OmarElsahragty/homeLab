@@ -22,7 +22,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.4.0",
-    "sharp": "^0.34.5"
+    "resend": "^6.9.4",
+    "sharp": "^0.34.5",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@stylistic/stylelint-plugin": "^5.0.1",

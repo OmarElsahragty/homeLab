@@ -16,7 +16,7 @@ import styles from './Contact.module.scss';
 export default function Contact() {
   const { t } = useLang();
   const [status, setStatus] = useState<FormStatus>('idle');
-  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', message: '', _honey: '' });
 
   const socials: SocialLink[] = [
     {
@@ -45,14 +45,25 @@ export default function Contact() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setStatus('sending');
-    await new Promise<void>((resolve) => {
-      setTimeout(resolve, 2000);
-    });
-    setStatus('success');
-    setTimeout(() => {
-      setStatus('idle');
-      setForm({ name: '', email: '', message: '' });
-    }, 4000);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) throw new Error('Failed to send');
+
+      setStatus('success');
+      setTimeout(() => {
+        setStatus('idle');
+        setForm({ name: '', email: '', message: '', _honey: '' });
+      }, 4000);
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 4000);
+    }
   };
 
   return (
@@ -106,6 +117,16 @@ export default function Contact() {
               </div>
 
               <form onSubmit={handleSubmit} className={styles.form}>
+                <input
+                  type="text"
+                  name="_honey"
+                  value={form._honey}
+                  onChange={(e) => setForm({ ...form, _honey: e.target.value })}
+                  autoComplete="off"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, width: 0 }}
+                />
                 <div className={styles.fields}>
                   <span className={styles.brace}>{'{'}</span>
 

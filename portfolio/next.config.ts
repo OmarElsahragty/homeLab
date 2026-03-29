@@ -32,6 +32,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   compress: true,
 
+  // Ensure HTML templates are included in the standalone Docker output
+  outputFileTracingIncludes: {
+    '/api/contact': ['./lib/api/templates/**/*.html'],
+  },
+
   sassOptions: {
     silenceDeprecations: ['legacy-js-api'],
     // Auto-inject variables & mixins into every *.module.scss file so

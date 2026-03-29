@@ -56,6 +56,10 @@ RUN mkdir .next && chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy HTML email templates — required by readFileSync at runtime
+# (outputFileTracingIncludes covers tracing, but explicit copy ensures availability)
+COPY --from=builder --chown=nextjs:nodejs /app/lib/api/templates ./lib/api/templates
+
 USER nextjs
 
 EXPOSE 3000

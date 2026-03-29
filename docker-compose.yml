@@ -581,6 +581,10 @@ services:
       - HOSTNAME=0.0.0.0
       - NEXT_TELEMETRY_DISABLED=1
 
+    # Runtime secrets (RESEND_API_KEY and any future keys)
+    env_file:
+      - ./portfolio/.env.local
+
     # No ports exposed to host — NPM accesses via nginx-network
     # Uncomment below for local testing without NPM:
     # ports:
