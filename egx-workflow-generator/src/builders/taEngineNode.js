@@ -393,6 +393,76 @@ function detectElliott(swings) {
   return result;
 }
 
+// ═══ WAVE TRADING SIGNAL CLASSIFICATION ═══
+
+function classifyWaveTradingSignal(elliott) {
+  if (!elliott || elliott.phase === 'unknown') return 'unknown';
+  const { phase, position, direction } = elliott;
+  if (phase === 'impulse' || phase === 'extended') {
+    if (position === 1) return 'setup';
+    if (position === 2) return 'trigger_zone';
+    if (position === 3) return 'momentum_core';
+    if (position === 4) return 'avoid_consolidation';
+    if (position === 5) return direction === 'up' ? 'take_profit_zone' : 'avoid_exhaustion';
+  }
+  if (phase === 'corrective') {
+    if (position <= 2) return 'trigger_zone';
+    return 'avoid_exhaustion';
+  }
+  return 'unknown';
+}
+
+// ═══ WAVE 2 VOLUME CONTRACTION CHECK ═══
+
+function checkWave2VolumeContraction(swings, volumes) {
+  if (!swings || swings.length < 3) return null;
+  const last5 = swings.slice(-5);
+  if (last5.length < 3) return null;
+  const s0 = last5[0], s1 = last5[1], s2 = last5[2];
+  if (s0.idx >= s1.idx || s1.idx >= s2.idx) return null;
+
+  const w1Vols = volumes.slice(s0.idx, s1.idx + 1).filter(v => v > 0);
+  const w2Vols = volumes.slice(s1.idx, s2.idx + 1).filter(v => v > 0);
+  if (w1Vols.length === 0 || w2Vols.length === 0) return null;
+
+  const avgW1 = w1Vols.reduce((a, b) => a + b, 0) / w1Vols.length;
+  const avgW2 = w2Vols.reduce((a, b) => a + b, 0) / w2Vols.length;
+  const ratio = avgW1 > 0 ? +(avgW2 / avgW1).toFixed(3) : 1;
+  return { contracted: ratio < 0.7, ratio, avgW1: Math.round(avgW1), avgW2: Math.round(avgW2) };
+}
+
+// ═══ WAVE TAKE-PROFIT TIERS ═══
+
+function computeWaveTakeProfit(swings, currentPrice, elliott) {
+  if (!swings || swings.length < 3 || !elliott || elliott.phase === 'unknown') return null;
+  const last5 = swings.slice(-5);
+  if (last5.length < 3) return null;
+  const s0 = last5[0], s1 = last5[1], s2 = last5[2];
+  const wave1Range = Math.abs(s1.price - s0.price);
+  if (wave1Range <= 0) return null;
+
+  let tp1, tp2, tp3;
+  if (elliott.direction === 'up' && s0.type === 'L') {
+    tp1 = +(s2.price + wave1Range * 1.0).toFixed(4);
+    tp2 = +(s2.price + wave1Range * 1.618).toFixed(4);
+    tp3 = +(s2.price + wave1Range * 2.618).toFixed(4);
+  } else if (elliott.direction === 'down' && s0.type === 'H') {
+    tp1 = +(s2.price - wave1Range * 1.0).toFixed(4);
+    tp2 = +(s2.price - wave1Range * 1.618).toFixed(4);
+    tp3 = +(s2.price - wave1Range * 2.618).toFixed(4);
+  } else {
+    return null;
+  }
+
+  return {
+    tp1: { price: tp1, action: 'partial_exit_50pct', extension: '100%' },
+    tp2: { price: tp2, action: 'exit_bulk', extension: '161.8%' },
+    tp3: { price: tp3, action: 'trail_runner_20pct', extension: '261.8%' },
+    wave1Range: +wave1Range.toFixed(4),
+    basePrice: s2.price
+  };
+}
+
 function calcFibonacci(swings, currentPrice) {
   if (swings.length < 2) return null;
   const lastH = swings.filter(s => s.type === 'H').pop();
@@ -808,6 +878,8 @@ function computeTF(ohlcv, tfId) {
   const zzThreshold = ZZ_THRESHOLDS[tfId] || 0.03;
   const swings = zigzag(highs, lows, zzThreshold);
   const elliott = detectElliott(swings);
+  const waveTradingSignal = classifyWaveTradingSignal(elliott);
+  const wave2VolContraction = checkWave2VolumeContraction(swings, volumes);
   const fib = calcFibonacci(swings, price);
   const legacySR = calcLegacySR(highs, lows, closes);
   const mergedSR = mergeSR(legacySR, fib, price);
@@ -872,6 +944,8 @@ function computeTF(ohlcv, tfId) {
     ratio: avgTurnover > 0 ? +(latestTurnover / avgTurnover).toFixed(2) : 1
   };
 
+  const waveTakeProfit = computeWaveTakeProfit(swings, price, elliott);
+
   return {
     ema9, ema21, ema50, emaAlign: align,
     rsi, rsiShort,
@@ -884,6 +958,9 @@ function computeTF(ohlcv, tfId) {
     vvp,
     fibonacci,
     turnover,
+    waveTradingSignal,
+    wave2VolContraction,
+    waveTakeProfit,
   };
 }
 
@@ -914,7 +991,24 @@ function waveAlignment(tfs) {
     else if (higherTF.direction === 'down' && lowerTF.phase === 'corrective') signal = 'bounce_in_downtrend';
     else signal = 'divergent';
   }
-  return { aligned: allUp || allDown, signal, detail };
+
+  // 3-of-3 nesting detection: Wave 3 on higher TF containing Wave 3 on lower TF
+  let nesting3of3 = false;
+  let nestingDepth = 0;
+  let nestingDetail = '';
+  const tfsWithWave3 = [];
+  for (const [tf, w] of entries) {
+    if (w.phase === 'impulse' && w.position === 3) tfsWithWave3.push(tf);
+  }
+  if (tfsWithWave3.length >= 2) {
+    nesting3of3 = true;
+    nestingDepth = tfsWithWave3.length;
+    nestingDetail = tfsWithWave3.join('+') + ' Wave 3 nesting';
+    if (allUp) signal = 'nested_bullish_wave3';
+    else if (allDown) signal = 'nested_bearish_wave3';
+  }
+
+  return { aligned: allUp || allDown, signal, detail, nesting3of3, nestingDepth, nestingDetail };
 }
 
 // ═══ ENHANCED MTF CONFLUENCE ═══
@@ -1035,6 +1129,13 @@ function confluence(tfs, waveAlign) {
       if (waveAlign.signal.includes('bullish')) bull += alignW * 0.5;
       else bear += alignW * 0.5;
     }
+  }
+
+  // 3-of-3 nesting bonus (additional 15%)
+  if (waveAlign?.nesting3of3 && total > 0) {
+    const nestW = total * 0.15;
+    if (waveAlign.signal.includes('bullish') || waveAlign.signal.includes('nested_bullish')) bull += nestW;
+    else if (waveAlign.signal.includes('bearish') || waveAlign.signal.includes('nested_bearish')) bear += nestW;
   }
 
   if (total === 0) return { score: 0, bias: 'neutral', strength: 'NONE' };

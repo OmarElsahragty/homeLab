@@ -1,0 +1,24 @@
+{
+  "name": "n8n Workflow Automation",
+  "short_name": "n8n",
+  "description": "Workflow automation platform — build powerful integrations",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#FF6D5A",
+  "icons": [
+    {
+      "src": "/n8n-pwa-icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/n8n-pwa-icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

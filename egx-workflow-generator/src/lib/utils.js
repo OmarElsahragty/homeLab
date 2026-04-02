@@ -105,6 +105,7 @@ function createCodeNode(name, jsCode, position) {
 function createScheduleTrigger(name, schedule, position) {
   return {
     parameters: {
+      timezone: 'Africa/Cairo',
       rule: {
         interval: [
           {

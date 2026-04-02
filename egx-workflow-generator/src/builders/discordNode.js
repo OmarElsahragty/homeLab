@@ -126,6 +126,18 @@ if (flowData) {
   headerLines.push('🏦 Inst. Flow: Foreign ' + fEmoji + ' **' + flowData.foreignSentiment + '** (' + (flowData.netForeign >= 0 ? '+' : '') + flowData.netForeign + 'M) · Arab ' + aEmoji + ' **' + flowData.arabSentiment + '** (' + (flowData.netArab >= 0 ? '+' : '') + flowData.netArab + 'M)');
 }
 
+// Breadth proxy
+const bpData = data.find(d => d.breadthProxy != null);
+if (bpData) {
+  headerLines.push('📊 Breadth Proxy: **' + bpData.breadthProxy + '%** bullish EMA alignment');
+}
+
+// Pre-holiday warning
+const holidayData = data.find(d => d.nearHoliday);
+if (holidayData?.nearHoliday) {
+  headerLines.push('⚠️ **PRE-HOLIDAY:** ' + holidayData.nearHoliday.daysToNext + ' session(s) to next holiday (' + holidayData.nearHoliday.nextHoliday + ') — reduce positions');
+}
+
 if (topBuy) {
   const b24 = topBuy.ai.prediction_24h || {};
   const b5d = topBuy.ai.prediction_5d || {};
@@ -198,7 +210,24 @@ for (const a of data) {
   // Action header line
   let actionLine = ' **' + action + '** · ' + conf + '% confidence';
   if (ai.riskLevel) actionLine += ' · Risk: ' + ai.riskLevel;
+  if (ai.waveTradingSignal && ai.waveTradingSignal !== 'unknown') {
+    const wtsEmoji = { setup: '🟡', trigger_zone: '🟢', momentum_core: '🚀', avoid_consolidation: '🟠', take_profit_zone: '💰', avoid_exhaustion: '🔴' };
+    actionLine += ' · ' + (wtsEmoji[ai.waveTradingSignal] || '❓') + ' ' + ai.waveTradingSignal.replace(/_/g, ' ');
+  }
   sections.push(actionLine);
+
+  // ARBS Score badge
+  if (ai.arbsScore != null && ai.arbsScore > 0) {
+    const arbsEmoji = ai.arbsScore >= 5 ? '🎯' : ai.arbsScore >= 3 ? '📊' : '⚠️';
+    const arbsBars = '█'.repeat(ai.arbsScore) + '░'.repeat(6 - ai.arbsScore);
+    sections.push(arbsEmoji + ' ARBS Score: **' + ai.arbsScore + '/6** \`' + arbsBars + '\`');
+  }
+
+  // 3-of-3 nesting indicator
+  if (ai.nesting3of3 || a.waveAlignment?.nesting3of3) {
+    const nestDetail = a.waveAlignment?.nestingDetail || 'multi-TF';
+    sections.push('⚡ **3-OF-3 NESTING** — ' + nestDetail + ' (HIGHEST conviction)');
+  }
 
   // Divergence warning badge
   if (ai.divergenceWarning && ai.divergenceWarning !== 'none') {
@@ -253,7 +282,11 @@ for (const a of data) {
   if (a.waveAlignment?.signal && a.waveAlignment.signal !== 'insufficient_data') {
     sections.push('Wave Align: \`' + a.waveAlignment.signal + '\`');
   }
-
+  // Wave 2 Volume Contraction
+  if (bestTF.w2vc) {
+    const vcIcon = bestTF.w2vc.contracted ? '✅' : '❌';
+    sections.push(vcIcon + ' W2 Vol Contraction: ' + (bestTF.w2vc.contracted ? 'YES' : 'NO') + ' (ratio: ' + bestTF.w2vc.ratio + ')');
+  }
   // ── Technical ──
   sections.push('');
   sections.push('**📊 Technical**');
@@ -387,7 +420,20 @@ for (const a of data) {
   if (ai.invalidation && ai.invalidation.price > 0) {
     sections.push('▸ 🛑 Invalidation: \`' + Number(ai.invalidation.price).toFixed(3) + ' EGP\` (' + ai.invalidation.basis + ')');
   }
+  // Wave Take-Profit Tiers
+  if (ai.waveTakeProfit && (ai.waveTakeProfit.tp1 > 0 || ai.waveTakeProfit.tp2 > 0)) {
+    let wtpLine = '\u25b8 \ud83c\udfaf Wave TP: ';
+    if (ai.waveTakeProfit.tp1 > 0) wtpLine += 'TP1=\`' + Number(ai.waveTakeProfit.tp1).toFixed(3) + '\` (50%) ';
+    if (ai.waveTakeProfit.tp2 > 0) wtpLine += 'TP2=\`' + Number(ai.waveTakeProfit.tp2).toFixed(3) + '\` (bulk) ';
+    if (ai.waveTakeProfit.tp3 > 0) wtpLine += 'TP3=\`' + Number(ai.waveTakeProfit.tp3).toFixed(3) + '\` (trail 20%)';
+    sections.push(wtpLine);
+  }
 
+  // Near-holiday warning per stock
+  if (ai.nearHoliday?.flag || a.nearHoliday) {
+    const nh = a.nearHoliday || ai.nearHoliday;
+    sections.push('\u26a0\ufe0f Pre-holiday: **' + (nh.daysToNext || nh.daysToNext) + ' sessions** \u2014 reduced sizing');
+  }
   // ── Analysis ──
   sections.push('');
   sections.push('**📝 Analysis**');

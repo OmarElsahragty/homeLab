@@ -59,11 +59,28 @@ const isWeekend = cairoWeekday === 'Friday' || cairoWeekday === 'Saturday';
 // Manual executions always run — useful for testing and on-demand analysis
 const isManual = $execution.mode === 'manual';
 
+// Compute days to next holiday (for pre-holiday risk flagging)
+let daysToNextHoliday = null;
+let nextHolidayDate = null;
+try {
+  const todayDate = new Date(today);
+  let minDays = Infinity;
+  for (const h of HOLIDAYS_2026) {
+    const hDate = new Date(h);
+    const diff = Math.ceil((hDate - todayDate) / (1000 * 60 * 60 * 24));
+    if (diff > 0 && diff < minDays) {
+      minDays = diff;
+      nextHolidayDate = h;
+    }
+  }
+  if (minDays < Infinity) daysToNextHoliday = minDays;
+} catch (e) { /* ignore */ }
+
 if (!isManual && (isHoliday || isWeekend)) {
   return [{ json: { _skip: true, reason: isHoliday ? 'EGX holiday: ' + today : 'Weekend' } }];
 }
 
-return [{ json: { _skip: false, date: today, manualOverride: isManual && (isHoliday || isWeekend) } }];
+return [{ json: { _skip: false, date: today, manualOverride: isManual && (isHoliday || isWeekend), daysToNextHoliday, nextHolidayDate } }];
 `;
 
 // ──────────────────────────────────────────────────────────────────

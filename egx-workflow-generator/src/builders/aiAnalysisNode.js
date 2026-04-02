@@ -159,7 +159,8 @@ EGX-ARBS Institutional Rules:
 
 === EXECUTION TIMING RULES (EGX-ARBS Layer 6) ===
 In your trade recommendations, incorporate:
-- Entry ONLY during optimal window: 1:30 PM – 3:00 PM Cairo (peak depth, narrowest spreads)
+- Entry ONLY during optimal window: 12:00 PM – 2:00 PM Cairo (balanced spread-depth, accelerating activity)
+- Exit/profit-taking window: 2:00 PM – 3:00 PM Cairo (peak depth, narrowest spreads)
 - NEVER recommend entries in the first 30 minutes (9:30–10:00 AM)
 - Sunday: explicitly state reduced position size (40% reduction)
 - Thursday: note higher conviction permissible
@@ -182,7 +183,82 @@ ALL directional calls must pass a volume confirmation filter:
 5. TRIPLE CONFLUENCE (highest conviction setup): Fibonacci level (f618/f500) within ±0.5% of VVP
    POC AND institutional flow alignment (foreigners buying at that level) = MAXIMUM BUY conviction.
    State this explicitly in reasoning_ar as shown in the Institutional Order Flow section above.
+=== WAVE PHASE \u2192 ACTION MECHANICAL MAPPING (EGX-ARBS) ===
+The TA Engine provides waveTradingSignal (wts) per timeframe. Use these MECHANICAL rules:
+- 'setup' (Wave 1): action = WATCH \u2014 trend initiating but not confirmed
+- 'trigger_zone' (Wave 2 retracement): action = BUY IF wave 2 volume contracted (w2vc.contracted=true)
+  * Wave 2 retracement to f618 or f786 = highest probability entry point
+  * MANDATORY: volume must contract during Wave 2 (w2vc.ratio < 0.7) for valid setup
+  * If w2vc.contracted=false: DOWNGRADE to WATCH, note in reasoning_ar
+- 'momentum_core' (Wave 3): action = BUY/HOLD \u2014 strongest trend phase
+  * If already in position: HOLD and trail stop to Wave 1 high
+  * If new entry: BUY only on pullbacks within Wave 3
+  * nesting3of3 = HIGHEST CONVICTION \u2014 Wave 3 within Wave 3 across timeframes
+- 'avoid_consolidation' (Wave 4): action = HOLD/reduce size or WATCH
+  * DO NOT initiate new positions during Wave 4
+- 'take_profit_zone' (Wave 5): action = HOLD with tight trailing stop
+  * Watch for RSI bearish divergence as exhaustion warning
+  * Use waveTakeProfit tiers: TP1=100% (partial 50%), TP2=161.8% (exit bulk), TP3=261.8% (trail 20%)
+- 'avoid_exhaustion' (Corrective Wave C): action = SELL or AVOID
 
+=== WAVE TAKE-PROFIT TIERS ===
+When waveTakeProfit (wtp) is provided per-timeframe, use these exit targets:
+- TP1 (100% extension): Exit 50% of position \u2014 secure base profit
+- TP2 (161.8% extension): Exit bulk of remaining \u2014 core target
+- TP3 (261.8% extension): Trail remaining 20% with tight stop
+Reference these levels in takeProfit and reasoning_ar. Set takeProfit to TP2 by default.
+
+=== EGX CIRCUIT BREAKER RULES ===
+EGX implements price limits that affect trading:
+- Individual stock: \u00b110% from previous close triggers a TRADING HALT
+- Daily maximum: \u00b120% from previous close \u2014 stock CANNOT trade beyond this
+RULES:
+- If stock price is within 2% of its 10% daily limit, REDUCE position size
+- If stock hit its limit today or yesterday, note in reasoning_ar
+- For BUY signals near upper limit: expect pullback, consider delaying entry
+- NEVER set takeProfit beyond the 20% daily limit from current price
+- Note circuit breaker proximity in reasoning_ar when relevant
+
+=== SHORT-SELLING FRAMEWORK (FRA March 2026) ===
+Egypt\u2019s FRA enabled regulated short-selling (March 2026):
+- Collateral: 150% of position value required
+- Eligibility: minimum 25% free-float, listed on EGX30 or EGX100
+- Maximum borrowing period: 3 months
+RULES for SELL signals:
+- When action = SELL and phase = corrective (ABC pattern), note short-selling viability
+- Set positionSizeModifier to 'reduced_40pct' minimum for short positions
+- Include collateral requirement note in reasoning_ar for SELL actions
+- For BUY actions, ignore short-selling rules entirely
+
+=== SECTOR ROTATION INTELLIGENCE (EGX) ===
+Consider sector context in your analysis:
+- Banking: Most CBE rate-sensitive. Rate cuts = MOST bullish for banks
+- Real Estate: Second-most rate-sensitive. Tracks EGP stability
+- Petrochemicals: Tracks global oil + EGP devaluation (export beneficiaries)
+- Consumer Staples: Defensive \u2014 outperforms in bearish/uncertain regimes
+- Construction: Leading indicator \u2014 picks up before broad rally
+ROTATION RULES:
+- In rate-cutting cycle: overweight Banks and Real Estate
+- In bearish/uncertain regime: prefer Consumer Staples
+- In EGP weakness: prefer export-oriented sectors
+- Note sector context in reasoning_ar when relevant
+
+=== ARBS COMPOSITE SCORE ===
+When arbsScore is provided (0-6), it represents the EGX-ARBS multi-layer confirmation:
+  1 = Wave Mechanics confirmed, 2 = Fibonacci confluence, 3 = Volume confirmation,
+  4 = Bullish regime, 5 = Institutional flow aligned, 6 = Broad market breadth
+- Score 5-6: HIGHEST conviction \u2014 increase confidence by 15 points
+- Score 3-4: MODERATE conviction \u2014 standard confidence
+- Score 1-2: LOW conviction \u2014 reduce confidence by 10 points
+- Score 0: NO confirmation layers \u2014 action should be WATCH
+Reference arbsScore in reasoning_ar.
+
+=== PRE-HOLIDAY RISK FLAG ===
+When nearHoliday is provided (daysToNext \u2264 2 trading sessions to next holiday):
+- REDUCE position size to 'reduced_40pct' or 'half'
+- Note holiday proximity in reasoning_ar: \"\u062a\u062d\u0630\u064a\u0631: \u0625\u062c\u0627\u0632\u0629 \u0642\u0631\u064a\u0628\u0629 (X \u062c\u0644\u0633\u0627\u062a)\"
+- Avoid initiating NEW positions when daysToNext = 1
+- Tighten stop-loss by 30% when daysToNext \u2264 2
 === NEWS ANALYSIS RULES ===
 - Analyze ALL provided Mubasher news items for this stock
 - Correlate each news item with the technical picture:
@@ -212,6 +288,10 @@ When turnover data is provided (to.lat = latest, to.avg = 20-day average, to.r =
   * Reduce confidence by 15 points
   * Set positionSizeModifier to at most 'reduced_40pct'
   * Note in reasoning_ar: "سيولة ضعيفة — حجم التداول بالجنيه أقل من نصف المتوسط"
+- If to.r >= 0.5 and to.r < 1.0 (below-average turnover):
+  * Reduce confidence by 10 points
+  * Monitor but do not reduce position size unless other risk factors present
+  * Note in reasoning_ar: "سيولة أقل من المتوسط — مراقبة"
 - If to.r > 2.0: UNUSUAL ACTIVITY — investigate if accumulation or distribution
 - Volume spikes (vol.spike=true) with to.r < 0.8 are FALSE SIGNALS — ignore them
 
@@ -227,7 +307,7 @@ MACRO DISCOUNT RULE:
     - If ADX >= 20 (stock has its own trend momentum): DISCOUNT BUY confidence by 15-20% only
   * Set positionSizeModifier to at most 'half'
   * Add to reasoning_ar: "خصم ماكرو — مؤشر EGX30 في نظام هبوطي" and note the ADX-based discount %
-- If macroBaseline.regime is 'neutral': reduce BUY confidence by 10%
+- If macroBaseline.regime is 'neutral': no discount applied (market is directionless, not adverse)
 - If macroBaseline.regime is 'bullish' or 'strong_bullish': no discount (market supports the trade)
 - SELL signals are NOT discounted by bearish macro — bearish macro REINFORCES sell signals
 
@@ -250,7 +330,7 @@ You MUST provide an invalidation level for every actionable signal (BUY/SELL/WAT
   * 'ATR_2x' — 2× ATR below entry (fallback when no clear structure)
   * 'structure' — below identified support/resistance structure
   * 'ichimoku_cloud' — below Ichimoku cloud base
-PRIORITY: VVP_VAL > fib_f618 > structure > ichimoku_cloud > ATR_2x
+PRIORITY: VVP_VAL > fib_f618 > fib_f786 > structure > ichimoku_cloud > ATR_2x
 For HOLD actions: invalidation.price = 0, invalidation.basis = 'none'
 
 === SMART CONTEXT (Semantic Memory) ===
@@ -267,18 +347,76 @@ Each smartContext entry contains:
   - marketState: brief snapshot of that session's market state
   - targets: {entry, tp, sl, pred24hLow, pred24hHigh, pred5dLow, pred5dHigh}
   - invalidation: basis@price string from that session
+  - AUDIT OUTCOME (when available):
+    - dirCorrect24h: was the 24h direction prediction correct? (true/false/null)
+    - dirCorrect5d: was the 5d direction prediction correct? (true/false/null)
+    - priceAcc24h: price accuracy 0-1.0 (1.0 = perfect)
+    - priceAcc5d: price accuracy 0-1.0
+    - actualPrice24h: what the actual price was 24h later
+    - actualPrice5d: what the actual price was 5d later
+    - errorBias24h: signed prediction error (positive = predicted too high, negative = predicted too low)
+    - regime: regime at that time
+    - confScore: confluence score at that time
+    - arbsScore: ARBS composite at that time
 
 SEMANTIC MEMORY RULES:
 1. If similarity > 0.85: very similar setup. Reference explicitly in reasoning_ar.
    Cite: "تشابه [XX]٪ مع جلسة [date]"
-2. If similar session was audited and outcome was correct:
-   - Setup worked before in similar conditions. Consider boosting confidence by 10pts.
-3. If similar session was audited and outcome was wrong:
-   - Setup failed before. Consider reducing confidence by 10pts and widening SL.
+2. If similar session was audited and dirCorrect24h is TRUE:
+   - Setup WORKED before in similar conditions. Boost confidence by 10pts.
+   - If priceAcc24h > 0.95: particularly accurate — trust this setup.
+3. If similar session was audited and dirCorrect24h is FALSE:
+   - Setup FAILED before. Reduce confidence by 10pts and widen SL.
+   - Check errorBias: if consistently positive (predicted too high), LOWER your price targets today.
+   - Check errorBias: if consistently negative (predicted too low), RAISE your price targets today.
 4. Compare context targets with your current prediction — adapt range width accordingly.
    If context pred24h range was too narrow (missed), WIDEN your range today.
 5. If smartContext is empty or similarity < 0.60: this is a novel setup. Proceed normally.
 6. Never blindly copy context action — market conditions evolve. Use context as signal, not rule.
+
+=== CROSS-TICKER CONTEXT (Analogous Setups) ===
+When crossTickerContext is provided, these are similar market states from DIFFERENT stocks.
+Use these cautiously as supplementary evidence:
+- If cross-ticker setups show consistent outcomes (e.g., 3/3 correct directions), it validates the pattern.
+- Weight cross-ticker context at 50% of same-ticker context (lower reliability).
+- Note cross-ticker analogues in reasoning_ar: "نمط مشابه لـ [ticker] في [date]"
+
+=== PERFORMANCE FEEDBACK (Self-Learning Calibration) ===
+When performanceStats is provided, it contains YOUR historical accuracy for this specific ticker:
+  - total_predictions: how many times you analyzed this stock
+  - dir_accuracy_24h_pct: your 24h direction accuracy (%)
+  - dir_accuracy_5d_pct: your 5d direction accuracy (%)
+  - avg_price_acc_24h_pct: your average 24h price prediction accuracy (%)
+  - avg_confidence: your average confidence level (0-100)
+  - avg_error_bias_24h_pct: systematic bias — positive means you consistently predict too high
+  - recent_5_results: array of your last 5 direction outcomes [true/false]
+  - CONFIDENCE CALIBRATION (when available):
+    - acc_when_conf_low: your actual accuracy when confidence < 40
+    - acc_when_conf_med: your actual accuracy when confidence 40-65
+    - acc_when_conf_high: your actual accuracy when confidence 65-80
+    - acc_when_conf_very_high: your actual accuracy when confidence >= 80
+
+PERFORMANCE-BASED RULES:
+P1. BIAS CORRECTION: If avg_error_bias_24h_pct is significant (abs > 1%):
+    - If positive (predicting too high): subtract abs(bias/2) from your predictions today
+    - If negative (predicting too low): add abs(bias/2) to your predictions today
+    This gradually corrects systematic over/under-estimation.
+P2. CONFIDENCE CALIBRATION: Compare your intended confidence with calibration data.
+    - If acc_when_conf_high is only 50% but you're about to output confidence=75:
+      Consider reducing to reflect actual hit rate. Be honest about uncertainty.
+    - If acc_when_conf_very_high is 90%+ and setup matches those conditions: trust it.
+P3. STREAK AWARENESS: Check recent_5_results.
+    - If last 3+ are false (losing streak on this ticker): reduce confidence by 15pts.
+      You may be systematically misreading this stock's patterns.
+    - If last 5 are true (hot streak): proceed normally but don't over-extrapolate.
+P4. LOW ACCURACY STOCKS: If dir_accuracy_24h_pct < 45% with 10+ predictions:
+    - This ticker is hard for you. Set confidence to at most 55 and riskLevel to HIGH.
+    - Note in reasoning_ar: "دقة تاريخية منخفضة لهذا السهم — ثقة مخفّضة"
+
+When regimeStats is provided, it shows YOUR accuracy by market regime × action:
+  - Use this to calibrate regime-specific confidence adjustments.
+  - If BUY in bearish regime shows <40% accuracy historically: apply additional discount.
+  - If SELL in bullish regime shows <40% accuracy: avoid contrarian calls.
 
 === OUTPUT FORMAT ===
 Respond ONLY with valid JSON. No markdown. No code fences.
@@ -298,7 +436,7 @@ Respond ONLY with valid JSON. No markdown. No code fences.
   "prediction_24h": {"low": 0.00, "high": 0.00},
   "prediction_5d": {"low": 0.00, "high": 0.00},
   "entry": 0.00,
-  "entryWindow": "1:30 PM – 3:00 PM Cairo (optimal depth)",
+  "entryWindow": "12:00 PM – 2:00 PM Cairo (balanced spread-depth)",
   "stopLoss": 0.00,
   "takeProfit": 0.00,
   "riskLevel": "LOW|MEDIUM|HIGH",
@@ -314,6 +452,11 @@ Respond ONLY with valid JSON. No markdown. No code fences.
   "fibVvpConfluence": {"detected": false, "level": 0.00, "description": "e.g. f618 at VVP POC ±0.3%"},
   "catalystDecayApplied": false,
   "invalidation": {"price": 0.00, "basis": "VVP_VAL|fib_f618|fib_f786|ATR_2x|structure|ichimoku_cloud|none"},
+  "waveTradingSignal": "setup|trigger_zone|momentum_core|take_profit_zone|avoid_consolidation|avoid_exhaustion|unknown",
+  "nesting3of3": false,
+  "arbsScore": 0,
+  "nearHoliday": {"flag": false, "daysToNext": 0},
+  "waveTakeProfit": {"tp1": 0.00, "tp2": 0.00, "tp3": 0.00},
   "reasoning_ar": "<12-18 sentences in Egyptian Arabic covering: session-aware timing, regime assessment, breadth confirmation, Elliott Wave + sub-wave Fibonacci, divergence analysis (RSI/MACD vs price), Volume-Confirmed Wave status (OBV/CMF/MFI/VVP), Fibonacci-VVP triple confluence if detected, institutional order flow alignment (foreign/Arab net), Ichimoku cloud, ADX trend strength, RSI-3 extremes, Fibonacci S/R levels (f618 golden pocket vs price), news-TA correlation, CBE rate direction impact, macro baseline discount if applicable, turnover liquidity assessment, invalidation level justification, and MTF confluence>"
 }
 
@@ -328,6 +471,7 @@ function buildContext(a) {
   lines.push('Available TFs: ' + a.tfs.join(', '));
   if (a.confluence) lines.push('MTF Confluence: score=' + a.confluence.score + ', bias=' + a.confluence.bias + ', strength=' + a.confluence.strength);
   if (a.waveAlignment) lines.push('Wave Alignment: signal=' + a.waveAlignment.signal + ' | ' + a.waveAlignment.detail);
+  if (a.waveAlignment?.nesting3of3) lines.push('⚡ 3-OF-3 NESTING DETECTED: ' + a.waveAlignment.nestingDetail + ' (depth=' + a.waveAlignment.nestingDepth + ')');
   if (a.error) lines.push('Data Note: ' + a.error);
 
   // Regime
@@ -337,6 +481,15 @@ function buildContext(a) {
   if (a.macroBaseline) {
     lines.push('MacroBaseline(EGX30): regime=' + a.macroBaseline.regime + ', score=' + a.macroBaseline.score + ', trend=' + a.macroBaseline.trend + ', price=' + a.macroBaseline.price);
   }
+
+  // ARBS score
+  if (a.arbsScore != null) lines.push('ARBS Score: ' + a.arbsScore + '/6');
+
+  // Breadth Proxy
+  if (a.breadthProxy != null) lines.push('Breadth Proxy: ' + a.breadthProxy + '% bullish EMA alignment');
+
+  // Pre-holiday risk
+  if (a.nearHoliday) lines.push('⚠️ PRE-HOLIDAY: ' + a.nearHoliday.daysToNext + ' sessions to ' + a.nearHoliday.nextHoliday);
 
   // CBE Rates
   if (a.cbeRates) {
@@ -395,6 +548,15 @@ function buildContext(a) {
       if (data.ew.sub) ewStr += ' sub:ratio=' + data.ew.sub.ratio + ',fib=' + data.ew.sub.fibMatch;
       parts.push(ewStr);
     }
+
+    // Wave Trading Signal
+    if (data.wts) parts.push('WaveSignal=' + data.wts);
+
+    // Wave 2 Volume Contraction
+    if (data.w2vc) parts.push('W2VolContraction:' + (data.w2vc.contracted ? 'YES' : 'NO') + '(ratio=' + data.w2vc.ratio + ')');
+
+    // Wave Take-Profit Tiers
+    if (data.wtp) parts.push('WaveTP:TP1=' + data.wtp.tp1.price + ',TP2=' + data.wtp.tp2.price + ',TP3=' + data.wtp.tp3.price);
 
     // Divergence
     if (data.div) {
@@ -470,8 +632,78 @@ function buildContext(a) {
       if (ctx.targets?.pred5dLow != null)
         ctxLine += ' | pred5d=[' + ctx.targets.pred5dLow + '-' + ctx.targets.pred5dHigh + ']';
       if (ctx.invalidation) ctxLine += ' | invalidation=' + ctx.invalidation;
+      // Audit outcome — did this prediction turn out correct?
+      if (ctx.dirCorrect24h != null) {
+        ctxLine += ' | AUDIT:dir24h=' + (ctx.dirCorrect24h ? 'CORRECT' : 'WRONG');
+        if (ctx.priceAcc24h != null) ctxLine += ',priceAcc24h=' + (Number(ctx.priceAcc24h) * 100).toFixed(0) + '%';
+        if (ctx.actualPrice24h != null) ctxLine += ',actual24h=' + ctx.actualPrice24h;
+      }
+      if (ctx.dirCorrect5d != null) {
+        ctxLine += ' | dir5d=' + (ctx.dirCorrect5d ? 'CORRECT' : 'WRONG');
+        if (ctx.priceAcc5d != null) ctxLine += ',priceAcc5d=' + (Number(ctx.priceAcc5d) * 100).toFixed(0) + '%';
+      }
+      if (ctx.errorBias24h != null && Number(ctx.errorBias24h) !== 0) {
+        ctxLine += ' | errorBias24h=' + (Number(ctx.errorBias24h) > 0 ? '+' : '') + (Number(ctx.errorBias24h) * 100).toFixed(2) + '%';
+      }
+      if (ctx.regime) ctxLine += ' | regime=' + ctx.regime;
+      if (ctx.arbsScore != null) ctxLine += ' | ARBS=' + ctx.arbsScore;
       lines.push(ctxLine);
       if (ctx.reasoning) lines.push('   reasoning: ' + ctx.reasoning.slice(0, 350));
+    }
+  }
+
+  // Cross-Ticker Context — analogous setups from other stocks
+  if (a.crossTickerContext && a.crossTickerContext.length > 0) {
+    lines.push('');
+    lines.push('>>> CROSS-TICKER ANALOGUES (Similar Setups from Other Stocks):');
+    for (const ctx of a.crossTickerContext) {
+      const simPct = ctx.similarity != null ? (Number(ctx.similarity) * 100).toFixed(1) : '?';
+      let ctxLine = '[' + ctx.ticker + ' ' + ctx.date + '] similarity=' + simPct + '%' +
+        ' | action=' + ctx.action + ' conf=' + ctx.confidence;
+      if (ctx.dirCorrect24h != null)
+        ctxLine += ' | dir24h=' + (ctx.dirCorrect24h ? 'CORRECT' : 'WRONG');
+      if (ctx.priceAcc24h != null)
+        ctxLine += ' | priceAcc24h=' + (Number(ctx.priceAcc24h) * 100).toFixed(0) + '%';
+      lines.push(ctxLine);
+    }
+  }
+
+  // Performance Stats — your historical accuracy for this ticker
+  if (a.performanceStats) {
+    const ps = a.performanceStats;
+    lines.push('');
+    lines.push('>>> YOUR PERFORMANCE ON THIS TICKER:');
+    lines.push('Total predictions: ' + ps.total_predictions +
+      ' | Dir accuracy 24h: ' + (ps.dir_accuracy_24h_pct != null ? ps.dir_accuracy_24h_pct + '%' : 'N/A') +
+      ' | Dir accuracy 5d: ' + (ps.dir_accuracy_5d_pct != null ? ps.dir_accuracy_5d_pct + '%' : 'N/A') +
+      ' | Avg price acc 24h: ' + (ps.avg_price_acc_24h_pct != null ? ps.avg_price_acc_24h_pct + '%' : 'N/A'));
+    if (ps.avg_error_bias_24h_pct != null && Number(ps.avg_error_bias_24h_pct) !== 0)
+      lines.push('Error bias 24h: ' + (Number(ps.avg_error_bias_24h_pct) > 0 ? '+' : '') +
+        ps.avg_error_bias_24h_pct + '% (positive=predicting too high)');
+    if (ps.avg_confidence != null)
+      lines.push('Avg confidence: ' + ps.avg_confidence);
+    if (ps.recent_5_results)
+      lines.push('Recent 5 outcomes: ' + ps.recent_5_results);
+    // Confidence calibration
+    if (ps.acc_when_conf_low != null || ps.acc_when_conf_high != null) {
+      let calLine = 'Confidence calibration: ';
+      if (ps.acc_when_conf_low != null) calLine += 'low(<40)=' + ps.acc_when_conf_low + '% ';
+      if (ps.acc_when_conf_med != null) calLine += 'med(40-65)=' + ps.acc_when_conf_med + '% ';
+      if (ps.acc_when_conf_high != null) calLine += 'high(65-80)=' + ps.acc_when_conf_high + '% ';
+      if (ps.acc_when_conf_very_high != null) calLine += 'vhigh(80+)=' + ps.acc_when_conf_very_high + '%';
+      lines.push(calLine);
+    }
+  }
+
+  // Regime Performance Stats — your accuracy by regime × action
+  if (a.regimeStats && a.regimeStats.length > 0) {
+    lines.push('');
+    lines.push('>>> YOUR PERFORMANCE BY REGIME:');
+    for (const rs of a.regimeStats) {
+      lines.push(rs.regime + '/' + rs.action + ': ' + rs.sample_count + ' samples' +
+        ' | dir24h=' + (rs.dir_accuracy_24h_pct != null ? rs.dir_accuracy_24h_pct + '%' : 'N/A') +
+        ' | dir5d=' + (rs.dir_accuracy_5d_pct != null ? rs.dir_accuracy_5d_pct + '%' : 'N/A') +
+        ' | avgConf=' + (rs.avg_confidence || 'N/A'));
     }
   }
 
@@ -618,6 +850,11 @@ function defaultAI(a, errMsg) {
     fibVvpConfluence: { detected: false, level: 0, description: '' },
     catalystDecayApplied: false,
     invalidation: { price: +(p - atrVal * 2).toFixed(2), basis: 'ATR_2x' },
+    waveTradingSignal: 'unknown',
+    nesting3of3: false,
+    arbsScore: 0,
+    nearHoliday: { flag: false, daysToNext: 0 },
+    waveTakeProfit: { tp1: 0, tp2: 0, tp3: 0 },
     reasoning_ar: '[⚠️ API Error] فشل التحليل: ' + errMsg
   };
 }
@@ -636,7 +873,7 @@ function sanitise(raw, fb) {
     prediction_24h: raw.prediction_24h?.low != null ? { low: +raw.prediction_24h.low, high: +raw.prediction_24h.high } : { low: +(p - atrVal).toFixed(2), high: +(p + atrVal).toFixed(2) },
     prediction_5d:  raw.prediction_5d?.low != null ? { low: +raw.prediction_5d.low, high: +raw.prediction_5d.high } : { low: +(p - atrVal * 2).toFixed(2), high: +(p + atrVal * 2.2).toFixed(2) },
     entry:          raw.entry || 0,
-    entryWindow:    raw.entryWindow || '1:30 PM – 3:00 PM Cairo (optimal depth)',
+    entryWindow:    raw.entryWindow || '12:00 PM – 2:00 PM Cairo (balanced spread-depth)',
     stopLoss:       raw.stopLoss || 0,
     takeProfit:     raw.takeProfit || 0,
     riskLevel:      ['LOW', 'MEDIUM', 'HIGH'].includes(raw.riskLevel) ? raw.riskLevel : 'MEDIUM',
@@ -659,6 +896,18 @@ function sanitise(raw, fb) {
       price: typeof raw.invalidation.price === 'number' ? raw.invalidation.price : 0,
       basis: ['VVP_VAL', 'fib_f618', 'fib_f786', 'ATR_2x', 'structure', 'ichimoku_cloud', 'none'].includes(raw.invalidation.basis) ? raw.invalidation.basis : 'none'
     } : { price: 0, basis: 'none' },
+    waveTradingSignal: ['setup', 'trigger_zone', 'momentum_core', 'take_profit_zone', 'avoid_consolidation', 'avoid_exhaustion', 'unknown'].includes(raw.waveTradingSignal) ? raw.waveTradingSignal : 'unknown',
+    nesting3of3: typeof raw.nesting3of3 === 'boolean' ? raw.nesting3of3 : false,
+    arbsScore: typeof raw.arbsScore === 'number' ? Math.min(6, Math.max(0, raw.arbsScore)) : 0,
+    nearHoliday: raw.nearHoliday && typeof raw.nearHoliday === 'object' ? {
+      flag: typeof raw.nearHoliday.flag === 'boolean' ? raw.nearHoliday.flag : false,
+      daysToNext: typeof raw.nearHoliday.daysToNext === 'number' ? raw.nearHoliday.daysToNext : 0
+    } : { flag: false, daysToNext: 0 },
+    waveTakeProfit: raw.waveTakeProfit && typeof raw.waveTakeProfit === 'object' ? {
+      tp1: typeof raw.waveTakeProfit.tp1 === 'number' ? raw.waveTakeProfit.tp1 : 0,
+      tp2: typeof raw.waveTakeProfit.tp2 === 'number' ? raw.waveTakeProfit.tp2 : 0,
+      tp3: typeof raw.waveTakeProfit.tp3 === 'number' ? raw.waveTakeProfit.tp3 : 0
+    } : { tp1: 0, tp2: 0, tp3: 0 },
     reasoning_ar:   raw.reasoning_ar || 'لا يوجد تحليل.'
   };
 }

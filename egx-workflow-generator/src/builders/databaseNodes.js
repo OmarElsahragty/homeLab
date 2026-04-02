@@ -94,6 +94,14 @@ CREATE TABLE IF NOT EXISTS egx_trading_journal (
   ai_targets            JSONB,
   invalidation_note     TEXT,
 
+  -- Context columns (stored at prediction time for aggregate learning)
+  ai_regime             VARCHAR(20),
+  confluence_score      NUMERIC(6,2),
+  wave_signal           VARCHAR(40),
+  arbs_score            SMALLINT,
+  wave_trading_signal   VARCHAR(30),
+  nesting_3of3          BOOLEAN DEFAULT false,
+
   is_audited_24h        BOOLEAN DEFAULT false,
   is_audited_5d         BOOLEAN DEFAULT false,
   actual_price_24h      NUMERIC(12,4),
@@ -103,8 +111,25 @@ CREATE TABLE IF NOT EXISTS egx_trading_journal (
   price_accuracy_24h    NUMERIC(5,2),
   price_accuracy_5d     NUMERIC(5,2),
 
+  -- Learning columns (computed by auditor for range calibration)
+  prediction_error_pct_24h NUMERIC(8,4),
+  prediction_error_pct_5d  NUMERIC(8,4),
+
   UNIQUE(ticker, run_date)
 );
+
+-- Backward-compatible migration: add new columns if upgrading from old schema
+DO $$ BEGIN
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS ai_regime VARCHAR(20);
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS confluence_score NUMERIC(6,2);
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS wave_signal VARCHAR(40);
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS arbs_score SMALLINT;
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS wave_trading_signal VARCHAR(30);
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS nesting_3of3 BOOLEAN DEFAULT false;
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS prediction_error_pct_24h NUMERIC(8,4);
+  ALTER TABLE egx_trading_journal ADD COLUMN IF NOT EXISTS prediction_error_pct_5d NUMERIC(8,4);
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_journal_embedding
   ON egx_trading_journal USING ivfflat (embedding vector_cosine_ops)
@@ -123,6 +148,14 @@ CREATE INDEX IF NOT EXISTS idx_journal_pending_24h
 CREATE INDEX IF NOT EXISTS idx_journal_pending_5d
   ON egx_trading_journal(run_date)
   WHERE is_audited_5d = false;
+
+CREATE INDEX IF NOT EXISTS idx_journal_regime
+  ON egx_trading_journal(ai_regime)
+  WHERE ai_regime IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_journal_audited_ticker
+  ON egx_trading_journal(ticker, run_date DESC)
+  WHERE is_audited_24h = true;
 `.trim();
 
 // ──────────────────────────────────────────────────────────────────
@@ -204,6 +237,17 @@ SELECT
   market_state_text,
   ai_targets,
   invalidation_note,
+  ai_regime,
+  confluence_score,
+  arbs_score,
+  direction_correct_24h,
+  direction_correct_5d,
+  price_accuracy_24h,
+  price_accuracy_5d,
+  actual_price_24h,
+  actual_price_5d,
+  prediction_error_pct_24h,
+  prediction_error_pct_5d,
   ROUND(CAST(1 - (embedding <=> '{{$json.embeddingStr}}'::vector) AS NUMERIC), 4) AS similarity
 FROM egx_trading_journal
 WHERE ticker = '{{$json.stock}}'
@@ -211,6 +255,113 @@ WHERE ticker = '{{$json.stock}}'
   AND embedding IS NOT NULL
 ORDER BY embedding <=> '{{$json.embeddingStr}}'::vector ASC
 LIMIT 2
+`.trim();
+
+// ──────────────────────────────────────────────────────────────────
+// CROSS-TICKER SIMILARITY SEARCH (fallback for stocks with limited history)
+// ──────────────────────────────────────────────────────────────────
+
+const CROSS_TICKER_SEARCH_SQL = `
+SELECT
+  ticker,
+  run_date,
+  ai_action,
+  ai_confidence,
+  ai_regime,
+  confluence_score,
+  arbs_score,
+  direction_correct_24h,
+  direction_correct_5d,
+  price_accuracy_24h,
+  price_accuracy_5d,
+  ROUND(CAST(1 - (embedding <=> '{{$json.embeddingStr}}'::vector) AS NUMERIC), 4) AS similarity
+FROM egx_trading_journal
+WHERE ticker != '{{$json.stock}}'
+  AND is_audited_24h = true
+  AND embedding IS NOT NULL
+  AND (1 - (embedding <=> '{{$json.embeddingStr}}'::vector)) > 0.80
+ORDER BY embedding <=> '{{$json.embeddingStr}}'::vector ASC
+LIMIT 3
+`.trim();
+
+// ──────────────────────────────────────────────────────────────────
+// TICKER PERFORMANCE STATS (self-learning feedback per stock)
+// ──────────────────────────────────────────────────────────────────
+
+const TICKER_PERF_STATS_SQL = `
+WITH ticker_stats AS (
+  SELECT
+    ticker,
+    COUNT(*) AS total_predictions,
+    COUNT(*) FILTER (WHERE is_audited_24h) AS audited_24h_count,
+    COUNT(*) FILTER (WHERE is_audited_5d)  AS audited_5d_count,
+    ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) FILTER (WHERE is_audited_24h) * 100, 1) AS dir_accuracy_24h_pct,
+    ROUND(AVG(CASE WHEN direction_correct_5d  THEN 1 ELSE 0 END) FILTER (WHERE is_audited_5d)  * 100, 1) AS dir_accuracy_5d_pct,
+    ROUND(AVG(price_accuracy_24h) FILTER (WHERE is_audited_24h) * 100, 1) AS avg_price_acc_24h_pct,
+    ROUND(AVG(price_accuracy_5d)  FILTER (WHERE is_audited_5d)  * 100, 1) AS avg_price_acc_5d_pct,
+    ROUND(AVG(ai_confidence), 1) AS avg_confidence,
+    ROUND(AVG(prediction_error_pct_24h) FILTER (WHERE is_audited_24h) * 100, 2) AS avg_error_bias_24h_pct,
+    ROUND(AVG(prediction_error_pct_5d)  FILTER (WHERE is_audited_5d)  * 100, 2) AS avg_error_bias_5d_pct
+  FROM egx_trading_journal
+  GROUP BY ticker
+  HAVING COUNT(*) FILTER (WHERE is_audited_24h) >= 3
+),
+recent_streak AS (
+  SELECT
+    ticker,
+    ARRAY_AGG(direction_correct_24h ORDER BY run_date DESC) AS last_results
+  FROM (
+    SELECT ticker, run_date, direction_correct_24h
+    FROM egx_trading_journal
+    WHERE is_audited_24h = true
+    ORDER BY run_date DESC
+  ) sub
+  GROUP BY ticker
+),
+confidence_calibration AS (
+  SELECT
+    ticker,
+    ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) FILTER (WHERE ai_confidence < 40)  * 100, 0) AS acc_when_conf_low,
+    ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) FILTER (WHERE ai_confidence >= 40 AND ai_confidence < 65) * 100, 0) AS acc_when_conf_med,
+    ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) FILTER (WHERE ai_confidence >= 65 AND ai_confidence < 80) * 100, 0) AS acc_when_conf_high,
+    ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) FILTER (WHERE ai_confidence >= 80) * 100, 0) AS acc_when_conf_very_high
+  FROM egx_trading_journal
+  WHERE is_audited_24h = true
+  GROUP BY ticker
+  HAVING COUNT(*) FILTER (WHERE is_audited_24h) >= 5
+)
+SELECT
+  ts.*,
+  rs.last_results[1:5] AS recent_5_results,
+  cc.acc_when_conf_low,
+  cc.acc_when_conf_med,
+  cc.acc_when_conf_high,
+  cc.acc_when_conf_very_high
+FROM ticker_stats ts
+LEFT JOIN recent_streak rs ON ts.ticker = rs.ticker
+LEFT JOIN confidence_calibration cc ON ts.ticker = cc.ticker
+ORDER BY ts.ticker
+`.trim();
+
+// ──────────────────────────────────────────────────────────────────
+// REGIME PERFORMANCE STATS (learning by market condition)
+// ──────────────────────────────────────────────────────────────────
+
+const REGIME_PERF_STATS_SQL = `
+SELECT
+  ai_regime AS regime,
+  ai_action AS action,
+  COUNT(*) AS sample_count,
+  ROUND(AVG(CASE WHEN direction_correct_24h THEN 1 ELSE 0 END) * 100, 1) AS dir_accuracy_24h_pct,
+  ROUND(AVG(CASE WHEN direction_correct_5d  THEN 1 ELSE 0 END) * 100, 1) AS dir_accuracy_5d_pct,
+  ROUND(AVG(price_accuracy_24h) * 100, 1) AS avg_price_acc_24h_pct,
+  ROUND(AVG(ai_confidence), 1) AS avg_confidence
+FROM egx_trading_journal
+WHERE is_audited_24h = true
+  AND ai_regime IS NOT NULL
+GROUP BY ai_regime, ai_action
+HAVING COUNT(*) >= 3
+ORDER BY ai_regime, ai_action
 `.trim();
 
 // ──────────────────────────────────────────────────────────────────
@@ -226,7 +377,14 @@ for (const orig of origItems) {
   if (orig.stock) origMap[orig.stock] = orig;
 }
 
-const dbRows = $input.all().map(i => i.json);
+// Same-ticker context rows
+const dbRows = $('Smart Context Search').all().map(i => i.json);
+
+// Cross-ticker fallback rows
+let crossRows = [];
+try {
+  crossRows = $('Cross-Ticker Search').all().map(i => i.json);
+} catch(e) {}
 
 const contextMap = {};
 for (const row of dbRows) {
@@ -250,15 +408,76 @@ for (const row of dbRows) {
     targets,
     invalidation: row.invalidation_note,
     similarity:   row.similarity,
+    // Audit outcome data (learning loop)
+    dirCorrect24h:  row.direction_correct_24h,
+    dirCorrect5d:   row.direction_correct_5d,
+    priceAcc24h:    row.price_accuracy_24h,
+    priceAcc5d:     row.price_accuracy_5d,
+    actualPrice24h: row.actual_price_24h,
+    actualPrice5d:  row.actual_price_5d,
+    regime:         row.ai_regime,
+    confScore:      row.confluence_score,
+    arbsScore:      row.arbs_score,
+    errorBias24h:   row.prediction_error_pct_24h,
+    errorBias5d:    row.prediction_error_pct_5d,
   });
 }
 
-return Object.values(origMap).map(orig => ({
-  json: {
-    ...orig,
-    smartContext: contextMap[orig.stock] || [],
+// Cross-ticker fallback: for tickers with <2 same-ticker results
+const crossContextMap = {};
+for (const row of crossRows) {
+  // Don't assign to a specific ticker — these are analogous setups from OTHER tickers
+  const srcTicker = row.ticker;
+  if (!crossContextMap[srcTicker]) crossContextMap[srcTicker] = [];
+  crossContextMap[srcTicker].push({
+    sourceTicker: srcTicker,
+    date:         row.run_date,
+    action:       row.ai_action,
+    confidence:   row.ai_confidence,
+    similarity:   row.similarity,
+    dirCorrect24h: row.direction_correct_24h,
+    dirCorrect5d:  row.direction_correct_5d,
+    priceAcc24h:   row.price_accuracy_24h,
+    regime:        row.ai_regime,
+    confScore:     row.confluence_score,
+    arbsScore:     row.arbs_score,
+  });
+}
+
+// Performance stats (ticker + regime)
+let tickerPerfStats = {};
+let regimePerfStats = [];
+try {
+  const perfRows = $('Fetch Ticker Stats').all().map(i => i.json);
+  for (const row of perfRows) {
+    if (row.ticker) tickerPerfStats[row.ticker] = row;
   }
-}));
+} catch(e) {}
+try {
+  regimePerfStats = $('Fetch Regime Stats').all().map(i => i.json).filter(r => r.regime);
+} catch(e) {}
+
+return Object.values(origMap).map(orig => {
+  const sameTickerCtx = contextMap[orig.stock] || [];
+  // If <2 same-ticker results, add cross-ticker analogues
+  let crossTickerCtx = [];
+  if (sameTickerCtx.length < 2) {
+    const allCross = Object.values(crossContextMap).flat();
+    crossTickerCtx = allCross
+      .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+      .slice(0, 3 - sameTickerCtx.length);
+  }
+
+  return {
+    json: {
+      ...orig,
+      smartContext: sameTickerCtx,
+      crossTickerContext: crossTickerCtx,
+      performanceStats: tickerPerfStats[orig.stock] || null,
+      regimeStats: regimePerfStats,
+    }
+  };
+});
 `.trim();
 
 // ──────────────────────────────────────────────────────────────────
@@ -318,6 +537,14 @@ for (const stock of analysisItems) {
     ? (ai.invalidation.basis || '') + '@' + (ai.invalidation.price || 0)
     : null;
 
+  // Context columns for aggregate learning
+  const aiRegime         = ai.regime || stock.regime?.regime || null;
+  const confScore        = stock.confluence?.score ?? null;
+  const waveSignal       = stock.waveAlignment?.signal || null;
+  const arbsScoreVal     = ai.arbsScore ?? stock.arbsScore ?? null;
+  const waveTradSig      = ai.waveTradingSignal || null;
+  const nesting          = ai.nesting3of3 || false;
+
   const embLiteral = embStr
     ? ("'" + embStr.replace(/'/g, "''") + "'::vector")
     : 'NULL';
@@ -334,6 +561,12 @@ for (const stock of analysisItems) {
     esc(reasoning),
     esc(JSON.stringify(targets)),
     esc(invalidationNote),
+    esc(aiRegime),
+    esc(confScore != null ? Number(confScore) : null),
+    esc(waveSignal),
+    esc(arbsScoreVal != null ? Number(arbsScoreVal) : null),
+    esc(waveTradSig),
+    nesting ? 'true' : 'false',
   ];
 
   inserts.push('\\n  (' + row.join(', ') + ')');
@@ -345,7 +578,8 @@ if (!inserts.length) {
 
 const sql = 'INSERT INTO egx_trading_journal\\n' +
   '  (ticker, run_date, run_timestamp, market_state_text, embedding,\\n' +
-  '   price_at_analysis, ai_action, ai_confidence, ai_reasoning, ai_targets, invalidation_note)\\n' +
+  '   price_at_analysis, ai_action, ai_confidence, ai_reasoning, ai_targets, invalidation_note,\\n' +
+  '   ai_regime, confluence_score, wave_signal, arbs_score, wave_trading_signal, nesting_3of3)\\n' +
   'VALUES' + inserts.join(',') + '\\n' +
   'ON CONFLICT (ticker, run_date) DO UPDATE SET\\n' +
   '  market_state_text  = EXCLUDED.market_state_text,\\n' +
@@ -356,6 +590,12 @@ const sql = 'INSERT INTO egx_trading_journal\\n' +
   '  ai_reasoning       = EXCLUDED.ai_reasoning,\\n' +
   '  ai_targets         = EXCLUDED.ai_targets,\\n' +
   '  invalidation_note  = EXCLUDED.invalidation_note,\\n' +
+  '  ai_regime          = EXCLUDED.ai_regime,\\n' +
+  '  confluence_score   = EXCLUDED.confluence_score,\\n' +
+  '  wave_signal        = EXCLUDED.wave_signal,\\n' +
+  '  arbs_score         = EXCLUDED.arbs_score,\\n' +
+  '  wave_trading_signal = EXCLUDED.wave_trading_signal,\\n' +
+  '  nesting_3of3       = EXCLUDED.nesting_3of3,\\n' +
   '  run_timestamp      = EXCLUDED.run_timestamp;';
 
 return [{ json: { _dbWriteQuery: sql } }];
@@ -464,20 +704,28 @@ for (const [ticker, rows] of Object.entries(tickerMap)) {
     const acc = Number(priceAccuracy.toFixed(4));
 
     if (is24h) {
+      const errorPct = predMid > 0 && currentPrice > 0
+        ? Number(((predMid - currentPrice) / currentPrice).toFixed(4))
+        : null;
       sqlUpdates.push(
         'UPDATE egx_trading_journal SET ' +
         'actual_price_24h = ' + currentPrice + ', ' +
         'direction_correct_24h = ' + dirCorrect + ', ' +
         'price_accuracy_24h = ' + acc + ', ' +
+        'prediction_error_pct_24h = ' + (errorPct !== null ? errorPct : 'NULL') + ', ' +
         'is_audited_24h = true ' +
         'WHERE id = ' + row.id + ';'
       );
     } else {
+      const errorPct = predMid > 0 && currentPrice > 0
+        ? Number(((predMid - currentPrice) / currentPrice).toFixed(4))
+        : null;
       sqlUpdates.push(
         'UPDATE egx_trading_journal SET ' +
         'actual_price_5d = ' + currentPrice + ', ' +
         'direction_correct_5d = ' + dirCorrect + ', ' +
         'price_accuracy_5d = ' + acc + ', ' +
+        'prediction_error_pct_5d = ' + (errorPct !== null ? errorPct : 'NULL') + ', ' +
         'is_audited_5d = true ' +
         'WHERE id = ' + row.id + ';'
       );
@@ -523,18 +771,45 @@ function buildSemanticRetrievalNodes(opts = {}) {
     { continueOnFail: true }
   );
 
+  const crossSearchNode = createPostgresNode(
+    'Cross-Ticker Search',
+    CROSS_TICKER_SEARCH_SQL,
+    [startX + 400, startY + 200],
+    { continueOnFail: true }
+  );
+
+  const tickerStatsNode = createPostgresNode(
+    'Fetch Ticker Stats',
+    TICKER_PERF_STATS_SQL,
+    [startX + 800, startY + 200],
+    { continueOnFail: true }
+  );
+
+  const regimeStatsNode = createPostgresNode(
+    'Fetch Regime Stats',
+    REGIME_PERF_STATS_SQL,
+    [startX + 800, startY + 400],
+    { continueOnFail: true }
+  );
+
   const mergeNode = createCodeNode(
     'Merge Smart Context',
     MERGE_SMART_CONTEXT_CODE,
-    [startX + 800, startY]
+    [startX + 1200, startY]
   );
 
-  const nodes = [embedNode, searchNode, mergeNode];
+  const nodes = [embedNode, searchNode, crossSearchNode, tickerStatsNode, regimeStatsNode, mergeNode];
 
   const connections = mergeConnections(
     createConnection(prevNodeName, 'Embed Market States'),
     createConnection('Embed Market States', 'Smart Context Search'),
-    createConnection('Smart Context Search', 'Merge Smart Context')
+    createConnection('Embed Market States', 'Cross-Ticker Search'),
+    createConnection('Embed Market States', 'Fetch Ticker Stats'),
+    createConnection('Embed Market States', 'Fetch Regime Stats'),
+    createConnection('Smart Context Search', 'Merge Smart Context'),
+    createConnection('Cross-Ticker Search', 'Merge Smart Context'),
+    createConnection('Fetch Ticker Stats', 'Merge Smart Context'),
+    createConnection('Fetch Regime Stats', 'Merge Smart Context')
   );
 
   return { nodes, connections, lastNodeName: 'Merge Smart Context' };
@@ -606,4 +881,7 @@ module.exports = {
   resetPgNodeIds,
   SCHEMA_INIT_SQL,
   SMART_CONTEXT_SEARCH_SQL,
+  CROSS_TICKER_SEARCH_SQL,
+  TICKER_PERF_STATS_SQL,
+  REGIME_PERF_STATS_SQL,
 };

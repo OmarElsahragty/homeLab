@@ -392,8 +392,29 @@ const COMPRESS_CODE = `
  */
 if ($input.all()[0]?.json?._skip) return $input.all();
 
-const TF_ORDER = ['1W', '4H', '1H', '15m'];
-const TF_SHORT = { '1W': 'W', '4H': '4H', '1H': '1H', '15m': '15m' };
+const TF_ORDER = ['1W', '1D', '4H', '1H'];
+const TF_SHORT = { '1W': 'W', '1D': 'D', '4H': '4H', '1H': '1H' };
+
+// ── Pre-holiday risk: known EGX closures 2026 ──
+const HOLIDAYS_2026 = [
+  '2026-03-19','2026-03-22','2026-03-23',
+  '2026-04-25','2026-05-01',
+  '2026-06-06','2026-06-07','2026-06-08','2026-06-09',
+  '2026-07-23','2026-06-27','2026-09-05','2026-10-06'
+];
+
+function computeDaysToNextHoliday(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const today = new Date(dateStr);
+    let min = Infinity, next = null;
+    for (const h of HOLIDAYS_2026) {
+      const diff = Math.ceil((new Date(h) - today) / 86400000);
+      if (diff > 0 && diff < min) { min = diff; next = h; }
+    }
+    return min < Infinity ? { daysToNext: min, nextHoliday: next } : null;
+  } catch (e) { return null; }
+}
 
 function compressTF(ta) {
   if (!ta) return null;
@@ -503,8 +524,28 @@ function compressTF(ta) {
     };
   }
 
+  // Wave Trading Signal
+  if (ta.waveTradingSignal) c.wts = ta.waveTradingSignal;
+
+  // Wave 2 Volume Contraction
+  if (ta.wave2VolContraction) c.w2vc = ta.wave2VolContraction;
+
+  // Wave Take-Profit Tiers
+  if (ta.waveTakeProfit) c.wtp = ta.waveTakeProfit;
+
   return c;
 }
+
+// ── Breadth proxy: % of analyzed stocks with bullish EMA alignment ──
+let bullishCount = 0, totalAnalyzed = 0;
+for (const bpItem of $input.all()) {
+  const bd = bpItem.json;
+  if (bd._fetchLog || bd.isIndex) continue;
+  totalAnalyzed++;
+  const anchor = bd.ta?.['4H'] || bd.ta?.['1H'];
+  if (anchor?.emaAlign === 'bullish') bullishCount++;
+}
+const breadthProxy = totalAnalyzed > 0 ? +(bullishCount / totalAnalyzed * 100).toFixed(1) : 0;
 
 const results = [];
 for (const item of $input.all()) {
@@ -525,6 +566,7 @@ for (const item of $input.all()) {
     marketBreadth: d.marketBreadth || null,
     macroBaseline: d.macroBaseline || null,
     isIndex: d.isIndex || false,
+    breadthProxy,
   };
   for (const tf of TF_ORDER) {
     if (d.ta?.[tf]) {
@@ -532,6 +574,43 @@ for (const item of $input.all()) {
       if (c) compressed.tf[TF_SHORT[tf] || tf] = c;
     }
   }
+
+  // ── ARBS Composite Score (0-6) ──
+  if (!d.isIndex) {
+    let arbsScore = 0;
+    const anchorTF = compressed.tf?.['4H'] || compressed.tf?.['1H'] || Object.values(compressed.tf || {})[0];
+
+    // Layer 1: Wave Mechanics (impulse Wave 3 or trigger_zone)
+    if (anchorTF?.wts === 'momentum_core' || anchorTF?.wts === 'trigger_zone') arbsScore++;
+
+    // Layer 2: Fibonacci Confluence (price near key fib level)
+    if (anchorTF?.sfib && d.currentPrice > 0) {
+      const cp = d.currentPrice;
+      const fibLevels = [anchorTF.sfib.f618, anchorTF.sfib.f500, anchorTF.sfib.f382].filter(Boolean);
+      if (fibLevels.some(lv => Math.abs(cp - lv) / cp < 0.01)) arbsScore++;
+    }
+
+    // Layer 3: Volume Confirmation
+    if (anchorTF?.vol?.sm === 'strong_accumulation' || anchorTF?.vol?.sm === 'accumulation') arbsScore++;
+
+    // Layer 4: Regime (bullish)
+    if (d.regime?.regime === 'bullish' || d.regime?.regime === 'strong_bullish') arbsScore++;
+
+    // Layer 5: Institutional Flow
+    if (d.institutionalFlow && !d.institutionalFlow.error && d.institutionalFlow.foreignSentiment === 'buying') arbsScore++;
+
+    // Layer 6: Market Breadth
+    if (d.marketBreadth?.signal === 'broad_bullish') arbsScore++;
+
+    compressed.arbsScore = arbsScore;
+  }
+
+  // ── Pre-holiday risk flag ──
+  const holidayInfo = computeDaysToNextHoliday(d.runDate);
+  if (holidayInfo && holidayInfo.daysToNext <= 2) {
+    compressed.nearHoliday = holidayInfo;
+  }
+
   results.push({ json: compressed });
 }
 return results;
